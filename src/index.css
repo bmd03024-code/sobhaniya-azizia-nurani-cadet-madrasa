@@ -1,0 +1,101 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Hind Siliguri', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: #0f172a;
+    background-color: #f8fafc;
+    overflow-x: hidden;
+  }
+}
+
+.font-arabic {
+  font-family: 'Amiri', 'Cinzel', serif;
+}
+
+.brand-title {
+  font-size: clamp(1.05rem, 2.2vw, 1.65rem);
+  line-height: 1.2;
+}
+
+.brand-sub {
+  font-size: clamp(0.7rem, 1.2vw, 0.875rem);
+}
+
+/* Islamic Geometric Arch & Pattern */
+.islamic-pattern {
+  background-color: #064e3b;
+  background-image: radial-gradient(#059669 1px, transparent 1px), radial-gradient(#d97706 1px, #064e3b 1px);
+  background-size: 40px 40px;
+  background-position: 0 0, 20px 20px;
+}
+
+/* Print specific styles for certificates, marksheets, admit cards, attendance sheets */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    margin: 0;
+    padding: 12mm 15mm;
+    background: white !important;
+    color: black !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    size: A4 portrait;
+    margin: 8mm;
+  }
+}
+
+/* Luxury Watermark styling */
+.doc-watermark {
+  background-image: radial-gradient(circle at center, rgba(6, 78, 59, 0.04) 0%, transparent 70%);
+}
+
+/* Islamic Official Certificate border */
+.certificate-border {
+  border: 10px double #065f46;
+  outline: 3px solid #d97706;
+  outline-offset: -7px;
+  position: relative;
+}
+
+.certificate-border::before {
+  content: "﷽";
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Amiri', serif;
+  font-size: 20px;
+  color: #047857;
+  font-weight: bold;
+}
+
+/* Marksheet Border */
+.marksheet-border {
+  border: 4px double #047857;
+  outline: 1.5px solid #d97706;
+  outline-offset: -3px;
+}
+
+/* Teacher & Student ID Card Dimensions */
+.id-card-frame {
+  width: 320px;
+  height: 500px;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+}

@@ -1,0 +1,36 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global Safety Net: Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // 1. Institutional Modules Data (Settings, Courses, Mentors, Notices, Students, etc.)
+    // Anyone worldwide can read and sync public institutional data in real time
+    match /institute_data/{moduleKey} {
+      allow read, write: if true;
+    }
+
+    // 2. Student Online Admission Applications
+    match /applications/{applicationId} {
+      allow read, write: if true;
+    }
+
+    // 3. AI Knowledge Base & Q&A
+    match /ai_kb/{docId} {
+      allow read, write: if true;
+    }
+
+    // 4. Test Connection Document for Readiness Checks
+    match /test/{docId} {
+      allow read, write: if true;
+    }
+  }
+}
