@@ -34,7 +34,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 }) => {
   const currentCfg = githubDataService.getConfig();
   const [token, setToken] = useState(settings.githubToken || currentCfg.token || '');
-  const [repo, setRepo] = useState(settings.githubRepo || currentCfg.repo || 'bmd03024-code/BS-E-LEARNING-IT-ZONE');
+  const [repo, setRepo] = useState(settings.githubRepo || currentCfg.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa');
   const [branch, setBranch] = useState(settings.githubBranch || currentCfg.branch || 'main');
   const [autoPush, setAutoPush] = useState(settings.githubAutoPushEnabled !== false && currentCfg.autoPushEnabled !== false);
 
@@ -289,7 +289,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                 required
                 value={repo}
                 onChange={e => setRepo(e.target.value)}
-                placeholder="bmd03024-code/BS-E-LEARNING-IT-ZONE"
+                placeholder="bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>

@@ -626,8 +626,9 @@ app.post('/api/ai/test', async (req: Request, res: Response) => {
 
 // POST /api/ai/chat - Dynamic Multi-AI Execution with Safe Fallback
 app.post('/api/ai/chat', async (req: Request, res: Response) => {
-  const { prompt, requestedProvider } = req.body;
-  if (!prompt || typeof prompt !== 'string') {
+  const { prompt, message, requestedProvider } = req.body;
+  const rawPrompt = prompt || message;
+  if (!rawPrompt || typeof rawPrompt !== 'string') {
     return res.status(400).json({ error: 'Prompt is required' });
   }
 
@@ -646,13 +647,13 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
   // Helper to attempt execution with a given provider
   async function executeProvider(p: 'gemini' | 'groq' | 'openrouter'): Promise<{ text: string; provider: string }> {
     if (p === 'gemini') {
-      const t = await runGeminiChat(prompt, serverAISettings.geminiApiKey, serverAISettings.geminiModel);
+      const t = await runGeminiChat(rawPrompt, serverAISettings.geminiApiKey, serverAISettings.geminiModel);
       return { text: t, provider: 'Google Gemini' };
     } else if (p === 'groq') {
-      const t = await runGroqChat(prompt, serverAISettings.groqApiKey, serverAISettings.groqModel);
+      const t = await runGroqChat(rawPrompt, serverAISettings.groqApiKey, serverAISettings.groqModel);
       return { text: t, provider: `Groq (${serverAISettings.groqModel || 'LLaMA'})` };
     } else if (p === 'openrouter') {
-      const t = await runOpenRouterChat(prompt, serverAISettings.openrouterApiKey, serverAISettings.openrouterModel);
+      const t = await runOpenRouterChat(rawPrompt, serverAISettings.openrouterApiKey, serverAISettings.openrouterModel);
       return { text: t, provider: `OpenRouter (${serverAISettings.openrouterModel || 'AI'})` };
     }
     throw new Error(`Unsupported provider: ${p}`);
@@ -664,6 +665,7 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
     return res.json({
       success: true,
       text: result.text,
+      reply: result.text,
       providerUsed: result.provider,
       isAiGenerated: true
     });
@@ -689,6 +691,7 @@ app.post('/api/ai/chat', async (req: Request, res: Response) => {
         return res.json({
           success: true,
           text: fallbackRes.text,
+          reply: fallbackRes.text,
           providerUsed: fallbackRes.provider,
           fallback: true,
           isAiGenerated: true
@@ -979,7 +982,7 @@ interface SavedGithubConfig {
 }
 let savedGithubConfig: SavedGithubConfig = {
   token: process.env.GITHUB_TOKEN || '',
-  repo: 'bmd03024-code/BS-E-LEARNING-IT-ZONE',
+  repo: 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa',
   branch: 'main',
   autoPushEnabled: true
 };
@@ -999,7 +1002,7 @@ if (fs.existsSync(GITHUB_CONFIG_FILE)) {
 app.get('/api/github/config', (_req: Request, res: Response) => {
   res.json({
     token: savedGithubConfig.token || process.env.GITHUB_TOKEN || '',
-    repo: savedGithubConfig.repo || 'bmd03024-code/BS-E-LEARNING-IT-ZONE',
+    repo: savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa',
     branch: savedGithubConfig.branch || 'main',
     autoPushEnabled: savedGithubConfig.autoPushEnabled !== false
   });
@@ -1029,12 +1032,12 @@ app.post('/api/github/save-config', (req: Request, res: Response) => {
 // GitHub Auto-Push & Vercel Sync REST API Endpoints
 app.get('/api/github/status', async (req: Request, res: Response) => {
   const token = (req.query.token as string) || savedGithubConfig.token || process.env.GITHUB_TOKEN || '';
-  const repo = (req.query.repo as string) || savedGithubConfig.repo || 'bmd03024-code/BS-E-LEARNING-IT-ZONE';
+  const repo = (req.query.repo as string) || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa';
 
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'BS-ELearning-Admin'
+      'User-Agent': 'Sobhaniya-Azizia-Cadet-Madrasah'
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -1071,7 +1074,7 @@ app.get('/api/github/status', async (req: Request, res: Response) => {
 
 app.post('/api/github/push', async (req: Request, res: Response) => {
   const token = req.body.token || savedGithubConfig.token || process.env.GITHUB_TOKEN || '';
-  const repo = req.body.repo || savedGithubConfig.repo || 'bmd03024-code/BS-E-LEARNING-IT-ZONE';
+  const repo = req.body.repo || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa';
   const branch = req.body.branch || savedGithubConfig.branch || 'main';
   const filePath = req.body.path || 'data/institute_db.json';
   const commitMsg = req.body.message || `Admin Auto-Sync: Updates to institute data [${new Date().toISOString()}]`;

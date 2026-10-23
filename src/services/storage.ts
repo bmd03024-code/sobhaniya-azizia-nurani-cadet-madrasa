@@ -19,7 +19,10 @@ import {
   DemoClassItem,
   TransferCertificate,
   CertificateRecord,
-  AdminCredentials
+  AdminCredentials,
+  UploadedRoutineDoc,
+  StudentFeeBill,
+  FeeItemBreakdown
 } from '../types';
 import { githubDataService } from './githubDataService';
 
@@ -85,7 +88,7 @@ const initialSettings: InstituteSettings = {
   footerText: "সোবহানিয়া আজিজিয়া নূরানী ক্যাডেট মাদ্রাসা — দ্বীনি আদর্শ ও আধুনিক ক্যাডেট শিক্ষার মেলবন্ধন। অভিজ্ঞ শিক্ষক মণ্ডলী এবং নিবিড় তত্ত্বাবধান।",
   footerCopyright: `© ${new Date().getFullYear()} সোবহানিয়া আজিজিয়া নূরানী ক্যাডেট মাদ্রাসা। সর্বস্বত্ব সংরক্ষিত।`,
   footerNotice: "ভর্তি, পরীক্ষা ও যাবতীয় সনদ সরাসরি প্রধান শিক্ষক কর্তৃক অনুমোদিত।",
-  githubRepo: "bmd03024-code/BS-E-LEARNING-IT-ZONE",
+  githubRepo: "bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa",
   githubBranch: "main"
 };
 
@@ -843,6 +846,85 @@ class MadrasahStorageService {
 
   saveCertificates(certs: CertificateRecord[]): void {
     this.set('certificates', certs);
+  }
+
+  getUploadedRoutines(): UploadedRoutineDoc[] {
+    return this.get<UploadedRoutineDoc[]>('uploaded_routines', []);
+  }
+
+  saveUploadedRoutines(docs: UploadedRoutineDoc[]): void {
+    this.set('uploaded_routines', docs);
+  }
+
+  getFeeBills(): StudentFeeBill[] {
+    return this.get<StudentFeeBill[]>('fee_bills', [
+      {
+        id: "bill-1",
+        billNo: "BILL-2026-001",
+        academicYear: "2026",
+        className: "শিশু শ্রেণি",
+        classId: "class-shishu",
+        roll: "01",
+        studentName: "মোহাম্মদ আব্দুল্লাহ",
+        fatherName: "মাওলানা মো: কামরুল হাসান",
+        phone: "+880 1816-027456",
+        month: "জানুয়ারি",
+        items: [
+          { id: "item-1", title: "মাসিক বেতন", amount: 500 },
+          { id: "item-2", title: "সেশন চার্জ", amount: 200 },
+          { id: "item-3", title: "আইডি কার্ড ও ডায়েরি ফি", amount: 150 }
+        ],
+        totalAmount: 850,
+        status: "unpaid",
+        publishDate: "2026-01-05",
+        notes: "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
+      },
+      {
+        id: "bill-2",
+        billNo: "BILL-2026-002",
+        academicYear: "2026",
+        className: "শিশু শ্রেণি",
+        classId: "class-shishu",
+        roll: "02",
+        studentName: "ফাতিমা বিনতে হাসান",
+        fatherName: "হাসান মাহমুদ",
+        phone: "+880 1711-223344",
+        month: "জানুয়ারি",
+        items: [
+          { id: "item-1", title: "মাসিক বেতন", amount: 500 },
+          { id: "item-2", title: "সেশন চার্জ", amount: 200 }
+        ],
+        totalAmount: 700,
+        status: "unpaid",
+        publishDate: "2026-01-05",
+        notes: "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
+      },
+      {
+        id: "bill-3",
+        billNo: "BILL-2026-003",
+        academicYear: "2026",
+        className: "১ম শ্রেণি",
+        classId: "class-1",
+        roll: "01",
+        studentName: "আহমাদ উল্লাহ",
+        fatherName: "আব্দুল কুদ্দুস",
+        phone: "+880 1812-345678",
+        month: "জানুয়ারি",
+        items: [
+          { id: "item-1", title: "মাসিক বেতন", amount: 600 },
+          { id: "item-2", title: "পরীক্ষা ফি", amount: 250 },
+          { id: "item-3", title: "বিদ্যুৎ ও সংস্কার ফি", amount: 100 }
+        ],
+        totalAmount: 950,
+        status: "unpaid",
+        publishDate: "2026-01-05",
+        notes: "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
+      }
+    ]);
+  }
+
+  saveFeeBills(bills: StudentFeeBill[]): void {
+    this.set('fee_bills', bills);
   }
 
   getNotes(): FreeNoteItem[] {

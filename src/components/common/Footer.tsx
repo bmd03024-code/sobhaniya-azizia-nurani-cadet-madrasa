@@ -54,6 +54,40 @@ export const Footer: React.FC<FooterProps> = ({ settings, onOpenAdminLogin, onNa
                 </div>
               )}
             </div>
+
+            {/* Social Links including TikTok */}
+            <div className="pt-2 flex items-center gap-2">
+              {settings.facebookUrl && (
+                <a
+                  href={settings.facebookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-blue-600/30 hover:bg-blue-600 text-blue-200 hover:text-white text-xs font-bold transition-colors"
+                >
+                  Facebook
+                </a>
+              )}
+              {settings.youtubeUrl && (
+                <a
+                  href={settings.youtubeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-red-600/30 hover:bg-red-600 text-red-200 hover:text-white text-xs font-bold transition-colors"
+                >
+                  YouTube
+                </a>
+              )}
+              {settings.tiktokUrl && (
+                <a
+                  href={settings.tiktokUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white text-xs font-bold transition-colors border border-slate-700"
+                >
+                  TikTok
+                </a>
+              )}
+            </div>
           </div>
 
           {/* Col 2: Quick Links */}
@@ -68,6 +102,14 @@ export const Footer: React.FC<FooterProps> = ({ settings, onOpenAdminLogin, onNa
                   className="hover:text-amber-400 transition-colors"
                 >
                   মূল পাতা
+                </button>
+              </li>
+              <li>
+                <button
+                  onClick={() => onNavigate('courses')}
+                  className="hover:text-amber-400 transition-colors font-semibold"
+                >
+                  শ্রেণিসমূহ ও কারিকুলাম
                 </button>
               </li>
               <li>

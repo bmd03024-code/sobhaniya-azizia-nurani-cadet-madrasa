@@ -254,6 +254,7 @@ export default function App() {
 
         <GallerySection
           gallery={gallery}
+          settings={settings}
         />
       </main>
 

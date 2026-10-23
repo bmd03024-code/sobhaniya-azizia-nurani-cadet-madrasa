@@ -81,6 +81,13 @@ export const Header: React.FC<HeaderProps> = ({
               মূল পাতা
             </button>
             <button
+              onClick={() => handleNavClick('courses')}
+              className="px-2.5 py-1.5 rounded-lg hover:text-emerald-900 hover:bg-emerald-50 transition-colors inline-flex items-center gap-1"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-700" />
+              শ্রেণিসমূহ
+            </button>
+            <button
               onClick={() => handleNavClick('founder')}
               className="px-2.5 py-1.5 rounded-lg hover:text-emerald-900 hover:bg-emerald-50 transition-colors inline-flex items-center gap-1"
             >
@@ -167,6 +174,13 @@ export const Header: React.FC<HeaderProps> = ({
             className="w-full text-left px-3 py-2 rounded-lg hover:bg-emerald-50"
           >
             মূল পাতা
+          </button>
+          <button
+            onClick={() => handleNavClick('courses')}
+            className="w-full text-left px-3 py-2 rounded-lg hover:bg-emerald-50 flex items-center justify-between"
+          >
+            <span>শ্রেণিসমূহ ও কারিকুলাম</span>
+            <BookOpen className="w-4 h-4 text-emerald-700" />
           </button>
           <button
             onClick={() => handleNavClick('founder')}

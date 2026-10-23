@@ -73,20 +73,21 @@ export const FloatingChatbot: React.FC = () => {
       const res = await fetch('/api/ai/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: textToSend.trim() })
+        body: JSON.stringify({ message: textToSend.trim(), prompt: textToSend.trim() })
       });
 
       if (res.ok) {
         const data = await res.json();
-        if (data.reply) {
+        const replyText = data.reply || data.text;
+        if (replyText) {
           setMessages((prev) => [
             ...prev,
             {
               id: `b-${Date.now()}`,
               sender: 'bot',
-              text: data.reply,
+              text: replyText,
               timestamp: new Date().toLocaleTimeString('bn-BD', { hour: '2-digit', minute: '2-digit' }),
-              sourceBadge: 'AI স্মার্ট হেল্পডেস্ক'
+              sourceBadge: data.providerUsed ? `AI (${data.providerUsed})` : 'AI স্মার্ট হেল্পডেস্ক'
             }
           ]);
           setLoading(false);
@@ -162,8 +163,12 @@ export const FloatingChatbot: React.FC = () => {
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-900 via-emerald-800 to-teal-900 text-white p-4 flex items-center justify-between shrink-0 shadow-md">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-inner">
-                <Bot className="w-6 h-6 text-amber-300" />
+              <div className="w-10 h-10 rounded-2xl bg-white/20 border border-white/30 flex items-center justify-center shadow-inner overflow-hidden p-1">
+                {settings.logoUrl ? (
+                  <img src={settings.logoUrl} alt="লোগো" className="w-full h-full object-contain" />
+                ) : (
+                  <Bot className="w-6 h-6 text-amber-300" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
@@ -196,8 +201,12 @@ export const FloatingChatbot: React.FC = () => {
                 className={`flex gap-2.5 ${m.sender === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 {m.sender === 'bot' && (
-                  <div className="w-7 h-7 rounded-full bg-emerald-800 text-amber-300 flex items-center justify-center text-xs shrink-0 mt-0.5 shadow-xs">
-                    <Bot className="w-4 h-4" />
+                  <div className="w-7 h-7 rounded-full bg-emerald-800 text-amber-300 flex items-center justify-center text-xs shrink-0 mt-0.5 shadow-xs overflow-hidden p-0.5 border border-amber-300/40">
+                    {settings.logoUrl ? (
+                      <img src={settings.logoUrl} alt="লোগো" className="w-full h-full object-contain" />
+                    ) : (
+                      <Bot className="w-4 h-4" />
+                    )}
                   </div>
                 )}
 

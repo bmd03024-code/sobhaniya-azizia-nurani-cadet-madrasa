@@ -45,7 +45,14 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
   return (
     <section id="courses-section" className="py-12 sm:py-16 bg-slate-50 border-b border-emerald-900/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-3xl mx-auto mb-10">
+        <div className="text-center max-w-3xl mx-auto mb-10 flex flex-col items-center">
+          {settings?.logoUrl && (
+            <img
+              src={settings.logoUrl}
+              alt="মাদ্রাসার লোগো"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-3 drop-shadow-md"
+            />
+          )}
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 mb-2">
             <Layers className="w-3.5 h-3.5 text-emerald-700" />
             <span>শিক্ষাক্রম, শ্রেণি ও পরীক্ষার বিষয়সমূহ (Curriculum)</span>
@@ -61,9 +68,17 @@ export const CoursesSection: React.FC<CoursesSectionProps> = ({
         {/* Admission Fee & Official Policy Alert Banner */}
         <div className="mb-10 bg-gradient-to-r from-emerald-950 via-emerald-900 to-teal-950 text-white rounded-2xl p-5 sm:p-7 shadow-lg border border-amber-400/40 flex flex-col md:flex-row items-center justify-between gap-5">
           <div className="flex items-center gap-4 text-center md:text-left">
-            <div className="p-3 bg-amber-400/20 rounded-2xl text-amber-300 shrink-0 hidden sm:block border border-amber-400/30">
-              <GraduationCap className="w-8 h-8" />
-            </div>
+            {settings?.logoUrl ? (
+              <img
+                src={settings.logoUrl}
+                alt="মাদ্রাসার লোগো"
+                className="w-14 h-14 sm:w-16 sm:h-16 object-contain shrink-0 hidden sm:block p-1 bg-white/10 rounded-2xl border border-white/20"
+              />
+            ) : (
+              <div className="p-3 bg-amber-400/20 rounded-2xl text-amber-300 shrink-0 hidden sm:block border border-amber-400/30">
+                <GraduationCap className="w-8 h-8" />
+              </div>
+            )}
             <div>
               <div className="inline-block px-3 py-1 rounded-full bg-amber-400 text-slate-950 text-xs font-black tracking-wide mb-1">
                 ভর্তি ফি: {toBengaliNum(settings?.admissionFee || 1000)} টাকা

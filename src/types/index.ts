@@ -32,6 +32,7 @@ export interface InstituteSettings {
   welcomeText: string;
   facebookUrl: string;
   youtubeUrl: string;
+  tiktokUrl?: string;
   mapEmbedUrl: string;
 
   // Admission Policy & Rules
@@ -90,6 +91,7 @@ export interface UploadedRoutineDoc {
   classId: string;
   className: string;
   routineType: 'class' | 'exam';
+  examType?: string;
   fileData: string; // Base64 data URL for image or PDF
   fileName: string;
   fileType: 'image' | 'pdf';
@@ -324,4 +326,29 @@ export interface AdminCredentials {
   email: string;
   password: string;
   masterPin: string;
+}
+
+export interface FeeItemBreakdown {
+  id: string;
+  title: string;
+  amount: number;
+}
+
+export interface StudentFeeBill {
+  id: string;
+  billNo: string;
+  academicYear: string;
+  className: string;
+  classId?: string;
+  roll: string;
+  studentName: string;
+  fatherName?: string;
+  phone?: string;
+  month: string;
+  items: FeeItemBreakdown[];
+  totalAmount: number;
+  status: 'unpaid' | 'paid';
+  publishDate: string;
+  dueDate?: string;
+  notes?: string;
 }

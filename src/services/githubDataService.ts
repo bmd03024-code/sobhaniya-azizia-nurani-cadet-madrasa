@@ -19,7 +19,7 @@
  */
 
 export interface GitHubConfig {
-  repo: string;          // e.g. "bmd03024-code/BS-E-LEARNING-IT-ZONE"
+  repo: string;          // e.g. "bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa"
   branch: string;        // e.g. "main"
   token: string;         // GitHub Personal Access Token (classic `repo` or fine-grained Contents: write)
   autoPushEnabled: boolean;
@@ -52,7 +52,7 @@ const STORAGE_KEYS = {
   LAST_SYNC: 'bs_github_last_sync'
 };
 
-const DEFAULT_REPO = 'bmd03024-code/BS-E-LEARNING-IT-ZONE';
+const DEFAULT_REPO = 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa';
 const DEFAULT_BRANCH = 'main';
 const DEFAULT_PATH = 'data/institute_db.json';
 
@@ -221,7 +221,7 @@ class GitHubDataService {
     const finalRepo = (repo !== undefined ? repo : cfg.repo).trim();
 
     if (!finalRepo) {
-      return { connected: false, message: 'রিপোজিটরির নাম দেওয়া হয়নি (যেমন: bmd03024-code/BS-E-LEARNING-IT-ZONE)' };
+      return { connected: false, message: 'রিপোজিটরির নাম দেওয়া হয়নি (যেমন: bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa)' };
     }
 
     try {

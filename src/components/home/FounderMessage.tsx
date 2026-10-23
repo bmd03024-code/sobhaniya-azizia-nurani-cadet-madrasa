@@ -16,13 +16,13 @@ export const FounderMessage: React.FC<FounderMessageProps> = ({ settings, onExpl
         <div className="text-center max-w-2xl mx-auto mb-8 sm:mb-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 mb-2">
             <Award className="w-3.5 h-3.5 text-amber-600" />
-            <span>আমাদের পরিচয় ও দিকনির্দেশনা</span>
+            <span>সোবহানিয়া আজিজিয়া নূরানী ক্যাডেট মাদ্রাসা</span>
           </div>
           <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-emerald-950">
-            প্রতিষ্ঠাতা ও পরিচালনা পরিষদের বাণী
+            প্রতিষ্ঠাতা ও সভাপতির বাণী
           </h2>
           <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            সোবহানিয়া আজিজিয়া নূরানী ক্যাডেট মাদ্রাসার সুযোগ্য নেতৃত্ব ও প্রতিষ্ঠাতা পরিষদের বার্তা
+            দ্বীনি ও আধুনিক ক্যাডেট শিক্ষার প্রসারে সুযোগ্য নেতৃত্ব এবং দিকনির্দেশনামূলক বার্তা
           </p>
 
           {/* Toggle Tab */}
@@ -45,7 +45,7 @@ export const FounderMessage: React.FC<FounderMessageProps> = ({ settings, onExpl
                   : 'bg-white text-slate-700 border border-slate-200 hover:bg-emerald-50'
               }`}
             >
-              প্রধান শিক্ষকের বাণী
+              প্রধান শিক্ষক ও অধ্যক্ষের বক্তব্য
             </button>
           </div>
         </div>

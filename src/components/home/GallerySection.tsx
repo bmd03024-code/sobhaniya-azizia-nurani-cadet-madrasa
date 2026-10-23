@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { GalleryItem } from '../../types';
+import { GalleryItem, InstituteSettings } from '../../types';
+import { storage } from '../../services/storage';
 import { Image as ImageIcon, Video, Play, ExternalLink } from 'lucide-react';
 
 interface GallerySectionProps {
   gallery: GalleryItem[];
+  settings?: InstituteSettings;
 }
 
-export const GallerySection: React.FC<GallerySectionProps> = ({ gallery }) => {
+export const GallerySection: React.FC<GallerySectionProps> = ({ gallery, settings: propSettings }) => {
+  const settings = propSettings || storage.getSettings();
   const [filter, setFilter] = useState<'all' | 'image' | 'video'>('all');
 
   const filteredItems = gallery.filter((item) => {
@@ -17,15 +20,24 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ gallery }) => {
   return (
     <section id="gallery-section" className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-3">
-          <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 mb-1.5">
-              <ImageIcon className="w-3.5 h-3.5 text-purple-700" />
-              <span>ছবি ও ভিডিও মেমোরিজ</span>
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-8 gap-4">
+          <div className="flex items-center gap-3">
+            {settings.logoUrl && (
+              <img
+                src={settings.logoUrl}
+                alt="মাদ্রাসার লোগো"
+                className="w-14 h-14 sm:w-16 sm:h-16 object-contain rounded-2xl bg-white p-1 border border-slate-200 shadow-xs shrink-0"
+              />
+            )}
+            <div>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-purple-100 text-purple-900 mb-1.5">
+                <ImageIcon className="w-3.5 h-3.5 text-purple-700" />
+                <span>মাদ্রাসার ফটো ও ভিডিও মেমোরিজ</span>
+              </div>
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
+                কার্যক্রম ও ক্যাম্পাস গ্যালারি
+              </h2>
             </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900">
-              আমাদের ল্যাব ও কার্যক্রমের গ্যালারি
-            </h2>
           </div>
 
           {/* Filter Pills */}

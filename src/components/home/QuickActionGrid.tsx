@@ -48,7 +48,8 @@ const iconMap: Record<string, React.ReactNode> = {
 };
 
 export const QuickActionGrid: React.FC<QuickActionGridProps> = ({ shortcuts, onActionClick }) => {
-  const enabledShortcuts = shortcuts.filter(s => s.enabled);
+  const excludedTargets = ['certificate', 'idcard', 'id-card', 'student-id', 'admit', 'admit-card'];
+  const enabledShortcuts = shortcuts.filter(s => s.enabled && !excludedTargets.includes(s.target));
 
   return (
     <section className="py-7 sm:py-10 bg-gradient-to-b from-emerald-50/50 via-slate-50 to-white border-b border-emerald-900/10">

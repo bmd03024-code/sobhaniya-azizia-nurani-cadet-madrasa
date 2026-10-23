@@ -1,352 +1,416 @@
 import React, { useState } from 'react';
-import { MadrasahClass, InstituteSettings } from '../../types';
+import { MadrasahClass, InstituteSettings, StudentFeeBill } from '../../types';
 import { storage } from '../../services/storage';
-import { CreditCard, CheckCircle2, AlertCircle, ArrowRight, Printer, Phone, Calendar, User, FileText } from 'lucide-react';
+import {
+  FileText,
+  Search,
+  Printer,
+  Download,
+  AlertCircle,
+  CheckCircle2,
+  Calendar,
+  User,
+  ShieldCheck,
+  RefreshCw,
+  Coins,
+  Receipt
+} from 'lucide-react';
+import { toBengaliNum } from './CoursesSection';
 
 interface MonthlyFeePaymentSectionProps {
-  courses?: any[]; // For backwards compatibility
+  courses?: any[];
   settings: InstituteSettings;
 }
 
+const MONTHS_LIST = [
+  'জানুয়ারি',
+  'ফেব্রুয়ারি',
+  'মার্চ',
+  'এপ্রিল',
+  'মে',
+  'জুন',
+  'জুলাই',
+  'আগস্ট',
+  'সেপ্টেম্বর',
+  'অক্টোবর',
+  'নভেম্বর',
+  'ডিসেম্বর'
+];
+
 export const MonthlyFeePaymentSection: React.FC<MonthlyFeePaymentSectionProps> = ({ settings }) => {
   const classes: MadrasahClass[] = storage.getClasses();
+
+  // Search filter states (NO amount field!)
   const [academicYear, setAcademicYear] = useState('2026');
-  const [classId, setClassId] = useState(classes[0]?.id || 'class-shishu');
+  const [className, setClassName] = useState(classes[0]?.name || 'শিশু শ্রেণি');
   const [roll, setRoll] = useState('');
-  const [studentName, setStudentName] = useState('');
-  const [phone, setPhone] = useState('');
-  const [month, setMonth] = useState('এপ্রিল ২০২৬');
-  const [feeType, setFeeType] = useState('মাসিক বেতন');
-  const [amount, setAmount] = useState('৫০০');
-  const [trxId, setTrxId] = useState('');
-  const [receipt, setReceipt] = useState<any | null>(null);
+  const [selectedMonth, setSelectedMonth] = useState('সকল মাস');
 
-  const handleRollLookup = (val: string) => {
-    setRoll(val);
-    const students = storage.getStudents();
-    const matched = students.find(s => s.roll === val.trim() && s.academicYear === academicYear && s.classId === classId);
-    if (matched) {
-      setStudentName(matched.name);
-      setPhone(matched.phone);
-    }
-  };
+  // Search results state
+  const [hasSearched, setHasSearched] = useState(false);
+  const [matchedBills, setMatchedBills] = useState<StudentFeeBill[]>([]);
+  const [activeBill, setActiveBill] = useState<StudentFeeBill | null>(null);
 
-  const handleClassChange = (newClassId: string) => {
-    setClassId(newClassId);
-    if (roll) {
-      const students = storage.getStudents();
-      const matched = students.find(s => s.roll === roll.trim() && s.academicYear === academicYear && s.classId === newClassId);
-      if (matched) {
-        setStudentName(matched.name);
-        setPhone(matched.phone);
-      }
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!roll.trim() || !studentName.trim() || !phone.trim() || !trxId.trim() || !amount) {
-      alert('অনুগ্রহ করে শ্রেণি, রোল নম্বর, শিক্ষার্থীর নাম, অভিভাবকের মোবাইল ও ট্রানজেকশন আইডি (TrxID) দিন।');
+    if (!roll.trim()) {
+      alert('অনুগ্রহ করে শিক্ষার্থীর রোল নম্বর দিন।');
       return;
     }
 
-    const currentClass = classes.find(c => c.id === classId);
-    const receiptData = {
-      receiptNo: `FEE-${Date.now().toString().slice(-6)}`,
-      academicYear,
-      className: currentClass?.name || 'শিশু শ্রেণি',
-      roll: roll.trim(),
-      studentName: studentName.trim(),
-      phone: phone.trim(),
-      month,
-      feeType,
-      amount: amount.trim(),
-      trxId: trxId.trim().toUpperCase(),
-      date: new Date().toLocaleDateString('bn-BD')
-    };
+    const allBills = storage.getFeeBills();
+    const cleanRoll = roll.trim();
 
-    // Also record in Madrasah ledger
-    storage.saveLedger([
-      {
-        id: `ledger-${Date.now()}`,
-        type: 'income',
-        category: 'মাসিক বেতন ও ফি',
-        description: `${receiptData.studentName} (রোল ${receiptData.roll}, ${receiptData.className}) - ${month}`,
-        amount: Number(amount.replace(/[^\d]/g, '')) || 500,
-        date: new Date().toISOString().split('T')[0],
-        receiptNo: receiptData.receiptNo,
-        academicYear
-      },
-      ...storage.getLedger()
-    ]);
+    // Filter by academic year, class name, and roll
+    const filtered = allBills.filter(bill => {
+      const matchYear = bill.academicYear === academicYear;
+      const matchClass =
+        bill.className === className ||
+        bill.classId === classes.find(c => c.name === className)?.id;
+      const matchRoll =
+        bill.roll.replace(/^0+/, '') === cleanRoll.replace(/^0+/, '') ||
+        bill.roll === cleanRoll;
+      const matchMonth =
+        selectedMonth === 'সকল মাস' || bill.month.includes(selectedMonth);
 
-    setReceipt(receiptData);
-    setTrxId('');
+      return matchYear && matchClass && matchRoll && matchMonth;
+    });
+
+    setHasSearched(true);
+    setMatchedBills(filtered);
+    if (filtered.length > 0) {
+      setActiveBill(filtered[0]);
+    } else {
+      setActiveBill(null);
+    }
   };
 
-  const handlePrintReceipt = () => {
+  const handlePrint = () => {
     window.print();
   };
 
   return (
-    <section id="fee-section" className="py-12 sm:py-16 bg-gradient-to-b from-slate-50 to-emerald-50/30 border-b border-slate-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 mb-2">
-            <CreditCard className="w-3.5 h-3.5 text-emerald-700" />
-            <span>ফি ও মাসিক বেতন পরিশোধ পোর্টাল</span>
+    <section id="fee-section" className="py-12 sm:py-16 bg-gradient-to-b from-slate-50 via-emerald-50/30 to-slate-50 border-b border-emerald-900/10">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6">
+        
+        {/* Section Header with Official Madrasah Logo */}
+        <div className="text-center max-w-2xl mx-auto mb-10 flex flex-col items-center">
+          {settings.logoUrl && (
+            <img
+              src={settings.logoUrl}
+              alt="মাদ্রাসার লোগো"
+              className="w-16 h-16 sm:w-20 sm:h-20 object-contain mx-auto mb-3 drop-shadow-md"
+            />
+          )}
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-900 mb-2 border border-emerald-200">
+            <Receipt className="w-3.5 h-3.5 text-emerald-700" />
+            <span>অফিশিয়াল ফি সার্ভিস ও রশিদ পোর্টাল</span>
           </div>
-          <h2 className="text-2xl sm:text-3xl md:text-4xl font-extrabold text-slate-900">
-            মাসিক বেতন ও আনুষঙ্গিক ফি পরিশোধ
+          <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
+            মাসিক বেতন ও আনুষঙ্গিক ফি রশিদ ডাউনলোড
           </h2>
-          <p className="text-xs sm:text-sm text-slate-600 mt-1">
-            মাদ্রাসার অফিসে সরাসরি নগদ জমা দিন অথবা বিকাশ/নগদে ফি পরিশোধ করে মানি রিসিট সংগ্রহ করুন
+          <p className="mt-2 text-sm sm:text-base text-slate-600">
+            শিক্ষাবর্ষ, শ্রেণি ও শিক্ষার্থীর রোল নির্বাচন করে অ্যাডমিন কর্তৃক নির্ধারিত আনপেইড ফি রশিদ খুঁজুন এবং ডাউনলোড / প্রিন্ট করুন।
           </p>
+          <div className="mt-3 inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-900 px-3.5 py-1.5 rounded-lg text-xs font-medium">
+            <AlertCircle className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>এখানে কোনো টাকা দিতে হবে না। আনপেইড রশিদটি ডাউনলোড করে মাদ্রাসার অফিসে এসে সরাসরি জমা দিন।</span>
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Left: Office Notice & Payment Guidelines */}
-          <div className="lg:col-span-5 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-sm space-y-6">
-            <div className="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-5 rounded-2xl shadow-md">
-              <span className="text-[11px] font-bold text-amber-300 uppercase tracking-wider block mb-1">
-                মাদ্রাসা অফিস নির্দেশিকা
-              </span>
-              <h3 className="text-sm sm:text-base font-bold leading-relaxed text-white">
-                ভর্তি ও নিয়মিত মাসিক বেতন সংক্রান্ত নিয়মাবলী
-              </h3>
-              <p className="text-xs text-emerald-100 mt-2 leading-relaxed">
-                ভর্তি ফি ১,০০০/- (এক হাজার টাকা) সরাসরি মাদ্রাসার অফিসে জমা দিতে হবে। বই, খাতা, চক ও সিলেট মাদ্রাসার লাইব্রেরি বা অফিস থেকে আলাদা সংগ্রহ করতে হবে।
-              </p>
+        {/* Search Bar / Filter Form */}
+        <div className="bg-white rounded-2xl shadow-xl shadow-emerald-950/5 border border-emerald-900/15 p-5 sm:p-7 mb-10">
+          <form onSubmit={handleSearch} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 items-end">
+            
+            {/* Academic Year */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                <span>শিক্ষাবর্ষ</span>
+              </label>
+              <select
+                value={academicYear}
+                onChange={e => setAcademicYear(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-slate-50"
+              >
+                <option value="2026">২০২৬ শিক্ষাবর্ষ</option>
+                <option value="2025">২০২৫ শিক্ষাবর্ষ</option>
+                <option value="2027">২০২৭ শিক্ষাবর্ষ</option>
+              </select>
             </div>
 
-            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-3">
-              <div className="flex items-center gap-2 text-amber-900 font-bold text-xs">
-                <AlertCircle className="w-4 h-4 text-amber-700 shrink-0" />
-                <span>বিকাশ / নগদ পেমেন্ট তথ্য:</span>
-              </div>
-              <p className="text-xs text-slate-700 leading-relaxed">
-                অনলাইনে ফি পরিশোধের জন্য মাদ্রাসার হটলাইন নম্বরে (<strong>{settings.hotline || '+880 1816-027456'}</strong>) Send Money / ক্যাশ ইন করে প্রাপ্ত TrxID নিচের ফর্মে দিন।
-              </p>
-              <div className="p-3 bg-white rounded-xl border border-amber-200 text-center">
-                <span className="text-[11px] text-slate-500 font-semibold block">মাদ্রাসার অফিশিয়াল নম্বর (Personal / Send Money)</span>
-                <span className="text-base font-black text-emerald-800 tracking-wider">
-                  {settings.hotline || '+880 1816-027456'}
-                </span>
-              </div>
+            {/* Class Selection */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                <FileText className="w-3.5 h-3.5 text-emerald-600" />
+                <span>শ্রেণি</span>
+              </label>
+              <select
+                value={className}
+                onChange={e => setClassName(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-slate-50"
+              >
+                {classes.map(c => (
+                  <option key={c.id} value={c.name}>{c.name}</option>
+                ))}
+              </select>
             </div>
 
-            <div className="space-y-2 text-xs text-slate-600">
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>প্রতি মাসের ১০ তারিখের মধ্যে মাসিক বেতন পরিশোধ করা উত্তম।</span>
-              </div>
-              <div className="flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
-                <span>অনলাইনে ফি সাবমিট করার পর কম্পিউটারাইজড রিসিট সাথে সাথে প্রিন্ট করা যাবে।</span>
-              </div>
+            {/* Student Roll Number */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                <User className="w-3.5 h-3.5 text-emerald-600" />
+                <span>শিক্ষার্থীর রোল নম্বর *</span>
+              </label>
+              <input
+                type="text"
+                required
+                value={roll}
+                onChange={e => setRoll(e.target.value)}
+                placeholder="যেমন: 01 বা 1"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-slate-900 text-sm font-bold focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-slate-50"
+              />
             </div>
-          </div>
 
-          {/* Right: Payment Submission Form */}
-          <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 border border-slate-200 shadow-md">
-            {receipt ? (
-              <div className="space-y-6">
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
-                  <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
-                  <h3 className="text-lg font-black text-emerald-950">
-                    ফি পরিশোধের তথ্য সফলভাবে গৃহীত হয়েছে!
-                  </h3>
-                  <p className="text-xs text-slate-600">
-                    মাদ্রাসার অফিস কর্তৃপক্ষ দ্রুত যাচাই করে চূড়ান্ত অনুমোদন প্রদান করবেন।
-                  </p>
+            {/* Month Filter */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1.5 flex items-center gap-1">
+                <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                <span>মাসের নাম</span>
+              </label>
+              <select
+                value={selectedMonth}
+                onChange={e => setSelectedMonth(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl border border-slate-300 text-slate-800 text-sm font-semibold focus:ring-2 focus:ring-emerald-500 focus:outline-hidden bg-slate-50"
+              >
+                <option value="সকল মাস">সকল মাস</option>
+                {MONTHS_LIST.map(m => (
+                  <option key={m} value={m}>{m}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Submit Button */}
+            <div>
+              <button
+                type="submit"
+                className="w-full py-2.5 px-4 bg-emerald-700 hover:bg-emerald-800 active:scale-98 text-white rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-md shadow-emerald-700/20 transition-all cursor-pointer"
+              >
+                <Search className="w-4 h-4" />
+                <span>রশিদ খুঁজুন ও ডাউনলোড</span>
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* When Searched and Results are Available */}
+        {hasSearched && (
+          <div>
+            {matchedBills.length === 0 ? (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-8 text-center max-w-xl mx-auto">
+                <div className="w-14 h-14 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <AlertCircle className="w-7 h-7" />
                 </div>
-
-                {/* Printable Receipt Preview */}
-                <div className="p-6 bg-slate-50 rounded-2xl border-2 border-dashed border-emerald-300 font-mono text-xs space-y-3">
-                  <div className="text-center pb-3 border-b border-slate-300">
-                    <h4 className="font-extrabold text-slate-900 text-sm">
-                      {settings.name}
-                    </h4>
-                    <p className="text-[11px] text-slate-600">{settings.address}</p>
-                    <span className="inline-block mt-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 font-bold rounded text-[10px]">
-                      ফি জমার রসিদ (মানি রিসিট)
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 text-[11px]">
-                    <div>রসিদ নং: <span className="font-bold">{receipt.receiptNo}</span></div>
-                    <div>তারিখ: <span className="font-bold">{receipt.date}</span></div>
-                    <div>শিক্ষার্থীর নাম: <span className="font-bold">{receipt.studentName}</span></div>
-                    <div>শ্রেণি: <span className="font-bold">{receipt.className}</span></div>
-                    <div>রোল নং: <span className="font-bold">{receipt.roll}</span></div>
-                    <div>মাস/ফি ধরন: <span className="font-bold">{receipt.month} ({receipt.feeType})</span></div>
-                    <div>টাকার পরিমাণ: <span className="font-bold">{receipt.amount} টাকা</span></div>
-                    <div>TrxID: <span className="font-bold text-emerald-800">{receipt.trxId}</span></div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={handlePrintReceipt}
-                    className="flex-1 py-3 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Printer className="w-4 h-4" />
-                    <span>রসিদ প্রিন্ট করুন</span>
-                  </button>
-                  <button
-                    onClick={() => setReceipt(null)}
-                    className="px-5 py-3 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs"
-                  >
-                    নতুন ফি জমা দিন
-                  </button>
-                </div>
+                <h3 className="text-lg font-bold text-slate-900 mb-1">
+                  কোনো ফি রশিদ পাওয়া যায়নি
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  শিক্ষাবর্ষ: <strong>{toBengaliNum(academicYear)}</strong>, শ্রেণি: <strong>{className}</strong> এবং রোল: <strong>{toBengaliNum(roll)}</strong> এর জন্য এখনো কোনো আনপেইড ফি রশিদ অ্যাডমিন কর্তৃক পাবলিশ করা হয়নি।
+                </p>
+                <p className="text-xs text-amber-800 mt-3 font-medium bg-amber-100/70 py-2 px-3 rounded-lg">
+                  💡 অনুগ্রহ করে সরাসরি মাদ্রাসা অফিসে যোগাযোগ করুন অথবা অ্যাডমিন প্যানেল থেকে উক্ত শিক্ষার্থীর ফি যুক্ত করার পর পুনরায় চেষ্টা করুন।
+                </p>
               </div>
             ) : (
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      শিক্ষাবর্ষ *
-                    </label>
-                    <select
-                      value={academicYear}
-                      onChange={(e) => setAcademicYear(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    >
-                      <option value="2026">২০২৬ শিক্ষাবর্ষ</option>
-                      <option value="2025">২০২৫ শিক্ষাবর্ষ</option>
-                    </select>
+              <div>
+                {/* If multiple bills match, show month selector buttons */}
+                {matchedBills.length > 1 && (
+                  <div className="flex flex-wrap items-center justify-center gap-2 mb-6">
+                    <span className="text-xs font-bold text-slate-600 mr-2">উপলব্ধ রশিদসমূহ:</span>
+                    {matchedBills.map(bill => (
+                      <button
+                        key={bill.id}
+                        type="button"
+                        onClick={() => setActiveBill(bill)}
+                        className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                          activeBill?.id === bill.id
+                            ? 'bg-emerald-700 text-white shadow-md'
+                            : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'
+                        }`}
+                      >
+                        {bill.month} (৳{toBengaliNum(bill.totalAmount)})
+                      </button>
+                    ))}
                   </div>
+                )}
 
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      শ্রেণি *
-                    </label>
-                    <select
-                      value={classId}
-                      onChange={(e) => handleClassChange(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    >
-                      {classes.map((cls) => (
-                        <option key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </option>
-                      ))}
-                    </select>
+                {/* Printable Official Slip Card */}
+                {activeBill && (
+                  <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-2xl border-2 border-emerald-800/30 overflow-hidden relative">
+                    
+                    {/* Top Action Bar (hidden in print) */}
+                    <div className="bg-slate-900 text-white px-5 py-3 flex flex-wrap items-center justify-between gap-3 print:hidden">
+                      <div className="flex items-center gap-2 text-xs font-bold text-emerald-400">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                        <span>অফিশিয়াল আনপেইড রশিদ পাওয়া গেছে</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handlePrint}
+                          className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow transition-all cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                          <span>রশিদ ডাউনলোড / প্রিন্ট করুন</span>
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Receipt Document Area (Formatted for Print) */}
+                    <div className="p-6 sm:p-8 bg-white relative">
+                      
+                      {/* Watermark in background */}
+                      {settings.logoUrl && (
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+                          <img src={settings.logoUrl} alt="Watermark" className="w-72 h-72 object-contain" />
+                        </div>
+                      )}
+
+                      {/* Header of the Slip */}
+                      <div className="border-b-2 border-emerald-900 pb-4 text-center relative z-10">
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                          {settings.logoUrl && (
+                            <img src={settings.logoUrl} alt="Logo" className="w-14 h-14 object-contain" />
+                          )}
+                          <div>
+                            <h1 className="text-xl sm:text-2xl font-black text-emerald-950 tracking-tight">
+                              {settings.name}
+                            </h1>
+                            <p className="text-xs text-slate-700 font-semibold">
+                              {settings.address}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="inline-block bg-emerald-900 text-white px-4 py-0.5 rounded-full text-xs font-bold mt-1 tracking-wider uppercase">
+                          আনপেইড ফি জমার রশিদ (UNPAID SLIP)
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-1 font-mono">
+                          রশিদ নং: {activeBill.billNo} | প্রকাশের তারিখ: {toBengaliNum(activeBill.publishDate)}
+                        </p>
+                      </div>
+
+                      {/* Student Info Box */}
+                      <div className="my-5 bg-slate-50/80 rounded-xl p-4 border border-slate-200 text-xs text-slate-800 grid grid-cols-2 gap-y-2 gap-x-4 relative z-10">
+                        <div>
+                          <span className="text-slate-500 font-medium">শিক্ষার্থীর নাম:</span>
+                          <span className="font-bold ml-1.5 text-slate-900">{activeBill.studentName}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">পিতার নাম:</span>
+                          <span className="font-bold ml-1.5 text-slate-900">{activeBill.fatherName || 'উল্লেখ নেই'}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">শ্রেণি:</span>
+                          <span className="font-bold ml-1.5 text-emerald-800">{activeBill.className}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">রোল নম্বর:</span>
+                          <span className="font-bold ml-1.5 text-slate-900">{toBengaliNum(activeBill.roll)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">শিক্ষাবর্ষ:</span>
+                          <span className="font-bold ml-1.5 text-slate-900">{toBengaliNum(activeBill.academicYear)}</span>
+                        </div>
+                        <div>
+                          <span className="text-slate-500 font-medium">ফি-র মাস:</span>
+                          <span className="font-bold ml-1.5 text-emerald-900 bg-emerald-100 px-2 py-0.5 rounded text-[11px]">
+                            {activeBill.month}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Fee Breakdown Table (Configured by Admin) */}
+                      <div className="relative z-10 mb-5">
+                        <table className="w-full text-xs text-left border-collapse border border-slate-300">
+                          <thead>
+                            <tr className="bg-emerald-900 text-white">
+                              <th className="border border-emerald-950 p-2 font-bold text-center w-12">ক্র.</th>
+                              <th className="border border-emerald-950 p-2 font-bold">ফি বিবরণী</th>
+                              <th className="border border-emerald-950 p-2 font-bold text-right w-28">টাকার পরিমাণ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {activeBill.items.map((item, idx) => (
+                              <tr key={item.id} className={idx % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+                                <td className="border border-slate-300 p-2 text-center text-slate-600 font-semibold">
+                                  {toBengaliNum(idx + 1)}
+                                </td>
+                                <td className="border border-slate-300 p-2 font-semibold text-slate-800">
+                                  {item.title}
+                                </td>
+                                <td className="border border-slate-300 p-2 text-right font-bold text-slate-900 font-mono">
+                                  ৳ {toBengaliNum(item.amount)}
+                                </td>
+                              </tr>
+                            ))}
+                            {/* Total Row */}
+                            <tr className="bg-emerald-50 border-t-2 border-emerald-900">
+                              <td colSpan={2} className="border border-slate-300 p-2.5 font-extrabold text-emerald-950 text-right">
+                                সর্বমোট প্রদেয় টাকা:
+                              </td>
+                              <td className="border border-slate-300 p-2.5 text-right font-black text-emerald-900 text-sm font-mono">
+                                ৳ {toBengaliNum(activeBill.totalAmount)}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* Special Instruction & Stamp */}
+                      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-3 border-t border-slate-200 relative z-10">
+                        <div className="text-left">
+                          <div className="inline-block border-2 border-rose-600 text-rose-700 px-3 py-1 rounded font-black text-xs uppercase tracking-wider -rotate-2">
+                            UNPAID — অফিসে প্রদেয়
+                          </div>
+                          <p className="text-[11px] text-slate-600 mt-2 max-w-xs leading-relaxed">
+                            ⚠️ এই রশিদের অর্থ সরাসরি মাদ্রাসার হিসাব শাখায় এসে নগদ জমা দিয়ে সিলমোহরযুক্ত পেইড কপি গ্রহণ করুন।
+                          </p>
+                        </div>
+
+                        {/* Signatures */}
+                        <div className="text-center sm:text-right">
+                          {settings.signatureUrl ? (
+                            <img src={settings.signatureUrl} alt="Signature" className="h-8 mx-auto sm:ml-auto object-contain mb-1" />
+                          ) : (
+                            <div className="h-8"></div>
+                          )}
+                          <div className="border-t border-slate-700 w-36 pt-1 text-[11px] font-bold text-slate-800 text-center">
+                            হিসাব শাখা / প্রধান শিক্ষক
+                          </div>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    {/* Bottom Download & Print Button in Slip Card (hidden in print) */}
+                    <div className="bg-slate-50 border-t border-slate-200 p-4 text-center print:hidden flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        onClick={handlePrint}
+                        className="px-6 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-lg shadow-emerald-700/20 active:scale-98 transition-all cursor-pointer"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span>অফিসিয়াল রশিদ প্রিন্ট / ডাউনলোড করুন</span>
+                      </button>
+                    </div>
+
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      শিক্ষার্থীর রোল নম্বর (Student ID) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="যেমন: ০১, ০২, ০৩"
-                      value={roll}
-                      onChange={(e) => handleRollLookup(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      শিক্ষার্থীর পূর্ণ নাম *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="শিক্ষার্থীর নাম"
-                      value={studentName}
-                      onChange={(e) => setStudentName(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      অভিভাবকের মোবাইল নম্বর *
-                    </label>
-                    <input
-                      type="tel"
-                      required
-                      placeholder="০১৮১৬০২৭৪৫৬"
-                      value={phone}
-                      onChange={(e) => setPhone(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      ফি-এর ধরন ও মাস *
-                    </label>
-                    <select
-                      value={month}
-                      onChange={(e) => setMonth(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    >
-                      <option value="জানুয়ারি ২০২৬">জানুয়ারি ২০২৬</option>
-                      <option value="ফেব্রুয়ারি ২০২৬">ফেব্রুয়ারি ২০২৬</option>
-                      <option value="মার্চ ২০২৬">মার্চ ২০২৬</option>
-                      <option value="এপ্রিল ২০২৬">এপ্রিল ২০২৬</option>
-                      <option value="মে ২০২৬">মে ২০২৬</option>
-                      <option value="জুন ২০২৬">জুন ২০২৬</option>
-                      <option value="জুলাই ২০২৬">জুলাই ২০২৬</option>
-                      <option value="আগস্ট ২০২৬">আগস্ট ২০২৬</option>
-                      <option value="সেপ্টেম্বর ২০২৬">সেপ্টেম্বর ২০২৬</option>
-                      <option value="অক্টোবর ২০২৬">অক্টোবর ২০২৬</option>
-                      <option value="নভেম্বর ২০২৬">নভেম্বর ২০২৬</option>
-                      <option value="ডিসেম্বর ২০২৬">ডিসেম্বর ২০২৬</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      টাকার পরিমাণ (টাকা) *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="৫০০"
-                      value={amount}
-                      onChange={(e) => setAmount(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-bold text-emerald-800 focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">
-                      বিকাশ/নগদ TrxID / ব্যাংক ভাউচার *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="যেমন: BKX928420"
-                      value={trxId}
-                      onChange={(e) => setTrxId(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold tracking-wider uppercase text-slate-800 focus:ring-2 focus:ring-emerald-600"
-                    />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="w-full mt-4 py-3.5 px-4 rounded-xl text-sm font-extrabold text-white bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 hover:from-emerald-700 hover:to-teal-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                >
-                  <span>ফি সাবমিট করুন ও রসিদ তৈরি করুন</span>
-                  <ArrowRight className="w-4 h-4 text-amber-300" />
-                </button>
-              </form>
+                )}
+              </div>
             )}
           </div>
-        </div>
+        )}
+
       </div>
     </section>
   );
