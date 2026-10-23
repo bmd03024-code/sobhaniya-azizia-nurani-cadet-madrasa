@@ -81,6 +81,19 @@ export interface MadrasahClass {
   code: string;
   order: number;
   subjects?: string[];
+  examTypes?: string[];
+}
+
+export interface UploadedRoutineDoc {
+  id: string;
+  academicYear: string;
+  classId: string;
+  className: string;
+  routineType: 'class' | 'exam';
+  fileData: string; // Base64 data URL for image or PDF
+  fileName: string;
+  fileType: 'image' | 'pdf';
+  uploadedAt: string;
 }
 
 export interface MadrasahSubject {
@@ -89,6 +102,7 @@ export interface MadrasahSubject {
   code: string;
   totalMarks: number;
   passMarks: number;
+  classId?: string; // Optional per-class binding
 }
 
 export interface ExamTypeItem {
@@ -96,6 +110,7 @@ export interface ExamTypeItem {
   name: string;
   code: string;
   isAnnual?: boolean;
+  classId?: string; // Optional per-class binding
 }
 
 export interface Teacher {
