@@ -20,19 +20,33 @@ interface MarksheetModalProps {
   classes?: MadrasahClass[];
 }
 
-const toEnglishNum = (str: string): string => {
+export const toEnglishDigits = (str: string): string => {
   const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
-  return (str || '').replace(/[০-৯]/g, d => String(banglaDigits.indexOf(d))).trim();
+  return (str || '').toString().replace(/[০-৯]/g, d => String(banglaDigits.indexOf(d))).trim();
+};
+
+export const toBanglaDigits = (str: string): string => {
+  const banglaDigits = ['০', '১', '২', '৩', '৪', '৫', '৬', '৭', '৮', '৯'];
+  return (str || '').toString().replace(/[0-9]/g, d => banglaDigits[Number(d)]).trim();
+};
+
+export const normalizeRollNumber = (str: string): string => {
+  if (!str) return '';
+  const english = toEnglishDigits(str);
+  const digits = english.replace(/[^\d]/g, '');
+  if (digits) {
+    return digits.replace(/^0+/, '') || '0';
+  }
+  return english.toLowerCase().trim();
 };
 
 export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose, classes = storage.getClasses() }) => {
   const settings = storage.getSettings();
-  const examTypes = storage.getExamTypes();
 
   // Filters
   const [academicYear, setAcademicYear] = useState('2026');
   const [classId, setClassId] = useState(classes[1]?.id || classes[0]?.id || 'class-1');
-  const [examType, setExamType] = useState(examTypes[0]?.name || '১ম সাময়িক');
+  const [examType, setExamType] = useState('১ম সাময়িক');
   const [rollInput, setRollInput] = useState('01');
 
   // Search States
@@ -48,14 +62,56 @@ export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose,
     setErrorMsg('');
     setFoundResult(null);
 
-    const cleanRoll = toEnglishNum(rollInput).padStart(2, '0');
+    const inputClean = rollInput.trim();
+    if (!inputClean) {
+      setErrorMsg('অনুগ্রহ করে শিক্ষার্থীর রোল নম্বর বা স্টুডেন্ট আইডি লিখুন।');
+      return;
+    }
+
+    const inputEnglish = toEnglishDigits(inputClean);
+    const inputNormalized = normalizeRollNumber(inputClean);
+
     const allResults = storage.getResults();
+    const selectedClassObj = classes.find(c => c.id === classId);
 
     const matched = allResults.find(r => {
-      const matchYear = r.academicYear === academicYear;
-      const matchClass = r.classId === classId || r.className === classes.find(c => c.id === classId)?.name;
-      const matchExam = r.examType.includes(examType) || examType.includes(r.examType);
-      const matchRoll = toEnglishNum(r.roll) === cleanRoll || toEnglishNum(r.roll) === toEnglishNum(rollInput);
+      // 1. Year Match (Supports both Bengali '২০২৬' and English '2026')
+      const matchYear = toEnglishDigits(r.academicYear) === toEnglishDigits(academicYear);
+
+      // 2. Class Match
+      const matchClass =
+        r.classId === classId ||
+        (selectedClassObj && r.className === selectedClassObj.name) ||
+        (selectedClassObj && r.className.includes(selectedClassObj.name)) ||
+        (selectedClassObj && selectedClassObj.name.includes(r.className));
+
+      // 3. Exam Type Match (Supports both short & full names)
+      const normalizeExam = (val: string): string => {
+        return (val || '').toLowerCase().replace(/পরীক্ষা|পরিক্ষা|eval|exam/g, '').trim();
+      };
+      const matchExam =
+        r.examType === examType ||
+        r.examType.includes(examType) ||
+        examType.includes(r.examType) ||
+        normalizeExam(r.examType) === normalizeExam(examType) ||
+        (examType.includes('১ম') && r.examType.includes('১ম')) ||
+        (examType.includes('২য়') && (r.examType.includes('২য়') || r.examType.includes('২য়'))) ||
+        (examType.includes('২য়') && (r.examType.includes('২য়') || r.examType.includes('২য়'))) ||
+        (examType.includes('বার্ষিক') && r.examType.includes('বার্ষিক'));
+
+      // 4. Roll / Student ID Match (Supports Bengali '০১'/'১' & English '01'/'1')
+      const recordClean = (r.roll || '').trim();
+      const recordNormalized = normalizeRollNumber(recordClean);
+      const recordEnglish = toEnglishDigits(recordClean);
+
+      const matchRoll =
+        recordClean === inputClean ||
+        recordEnglish === inputEnglish ||
+        (recordNormalized && inputNormalized && recordNormalized === inputNormalized) ||
+        (recordNormalized && inputNormalized && recordNormalized.padStart(2, '0') === inputNormalized.padStart(2, '0')) ||
+        (r.id && r.id.toLowerCase() === inputClean.toLowerCase()) ||
+        (r.studentId && r.studentId.toLowerCase() === inputClean.toLowerCase());
+
       return matchYear && matchClass && matchExam && matchRoll;
     });
 
@@ -66,7 +122,7 @@ export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose,
         setFoundResult(matched);
       }
     } else {
-      setErrorMsg(`রোল ${rollInput}-এর জন্য কোনো ফলাফল পাওয়া যায়নি। শ্রেণি, পরীক্ষার ধরন ও রোল নম্বর সঠিক কিনা যাচাই করুন।`);
+      setErrorMsg(`রোল বা স্টুডেন্ট আইডি '${rollInput}'-এর জন্য কোনো ফলাফল পাওয়া যায়নি। অনুগ্রহ করে শিক্ষাবর্ষ, শ্রেণি, পরীক্ষার ধরন এবং রোল নম্বর সঠিক কিনা পুনরায় যাচাই করুন।`);
     }
   };
 
@@ -109,26 +165,26 @@ export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose,
           <form onSubmit={handleSearch} className="bg-emerald-50/60 p-4 sm:p-5 rounded-2xl border border-emerald-200 space-y-4 no-print">
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-950 mb-1">
               <Sparkles className="w-4 h-4 text-amber-500" />
-              <span>ফলাফল অনুসন্ধান ফিল্টার (রোল-ই স্টুডেন্ট আইডি)</span>
+              <span>ফলাফল অনুসন্ধান ফিল্টার (রোল বা স্টুডেন্ট আইডি)</span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
               {/* Year */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">শিক্ষাবর্ষ</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">১. শিক্ষাবর্ষ *</label>
                 <select
                   value={academicYear}
                   onChange={(e) => setAcademicYear(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-600 outline-none"
                 >
-                  <option value="2026">২০২৬</option>
-                  <option value="2025">২০২৫</option>
+                  <option value="2026">২০২৬ শিক্ষাবর্ষ</option>
+                  <option value="2025">২০২৫ শিক্ষাবর্ষ</option>
                 </select>
               </div>
 
               {/* Class */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">শ্রেণি</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">২. শ্রেণি *</label>
                 <select
                   value={classId}
                   onChange={(e) => setClassId(e.target.value)}
@@ -144,43 +200,43 @@ export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose,
 
               {/* Exam */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">পরীক্ষার ধরন</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">৩. পরীক্ষার ধরন *</label>
                 <select
                   value={examType}
                   onChange={(e) => setExamType(e.target.value)}
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold bg-white focus:ring-2 focus:ring-emerald-600 outline-none"
                 >
-                  {examTypes.map((ex) => (
-                    <option key={ex.id} value={ex.name}>
-                      {ex.name}
-                    </option>
-                  ))}
+                  <option value="১ম সাময়িক">১ম সাময়িক পরীক্ষা</option>
+                  <option value="২য় সাময়িক">২য় সাময়িক পরীক্ষা</option>
+                  <option value="বার্ষিক">বার্ষিক চূড়ান্ত মূল্যায়ন পরীক্ষা</option>
                 </select>
               </div>
 
               {/* Roll */}
               <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">রোল / স্টুডেন্ট আইডি</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">৪. রোল বা স্টুডেন্ট আইডি *</label>
                 <input
                   type="text"
                   value={rollInput}
                   onChange={(e) => setRollInput(e.target.value)}
-                  placeholder="যেমন: 01"
+                  placeholder="বাংলা (০১) বা ইংরেজি (01)"
                   className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs font-bold font-mono bg-white focus:ring-2 focus:ring-emerald-600 outline-none"
                   required
                 />
               </div>
             </div>
 
-            <div className="flex justify-end pt-1">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-1 border-t border-emerald-200/60">
+              <span className="text-[11px] text-emerald-800 font-medium">
+                💡 টিপস: রোল বাংলা (০১, ১, ১৫) অথবা ইংরেজি (01, 1, 15) যেভাবেই লিখুন ফলাফল আসবে।
+              </span>
               <button
                 type="submit"
-                className="px-5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center gap-2"
+                className="px-5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-900 text-white font-bold text-xs sm:text-sm shadow-sm transition-all flex items-center justify-center gap-2 shrink-0"
               >
                 <Search className="w-4 h-4 text-amber-400" />
-                <span>ফলাফল দেখুন</span>
+                <span>ফলাফল অনুসন্ধান করুন</span>
               </button>
-            </div>
           </form>
 
           {/* Error / Not Found Alert */}
