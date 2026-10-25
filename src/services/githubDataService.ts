@@ -97,11 +97,18 @@ class GitHubDataService {
       const res = await fetch('/api/github/config');
       if (res.ok) {
         const srvCfg = await safeResponseJson<any>(res, {});
+        const currentToken = (localStorage.getItem(STORAGE_KEYS.TOKEN) || '').trim();
         if (srvCfg && srvCfg.token) {
-          const currentToken = localStorage.getItem(STORAGE_KEYS.TOKEN);
           if (!currentToken) {
             this.saveConfig(srvCfg);
           }
+        } else if (currentToken) {
+          // If server restarted and lost memory token, sync client's token TO the server
+          fetch('/api/github/save-config', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.getConfig())
+          }).catch(() => {});
         }
       }
     } catch {}
@@ -403,23 +410,31 @@ class GitHubDataService {
         })
       });
 
-      if (srvRes.ok) {
-        const srvData = await safeResponseJson<any>(srvRes, {});
-        if (srvData.success) {
-          if (srvData.commitSha) localStorage.setItem(STORAGE_KEYS.LAST_SHA, srvData.commitSha);
-          localStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()));
-          this.broadcastCommit(srvData.commitSha);
-          return {
-            success: true,
-            message: srvData.message || 'সফলভাবে GitHub-এ ডাটা কমিট ও পুশ হয়েছে! Vercel স্বয়ংক্রিয়ভাবে নতুন বিল্ড শুরু করেছে।',
-            commitSha: srvData.commitSha,
-            commitUrl: srvData.commitUrl,
-            timestamp: Date.now()
-          };
-        }
+      const srvData = await safeResponseJson<any>(srvRes, {});
+
+      if (srvRes.ok && srvData.success) {
+        if (srvData.commitSha) localStorage.setItem(STORAGE_KEYS.LAST_SHA, srvData.commitSha);
+        localStorage.setItem(STORAGE_KEYS.LAST_SYNC, String(Date.now()));
+        this.broadcastCommit(srvData.commitSha);
+        return {
+          success: true,
+          message: srvData.message || 'সফলভাবে GitHub-এ ডাটা কমিট ও পুশ হয়েছে! Vercel স্বয়ংক্রিয়ভাবে নতুন বিল্ড শুরু করেছে।',
+          commitSha: srvData.commitSha,
+          commitUrl: srvData.commitUrl,
+          timestamp: Date.now()
+        };
+      }
+
+      // If server returned an explicit error (e.g. 401 Bad credentials, 404 repo not found, 403 no write permission)
+      if (srvData && (srvData.error || srvData.message)) {
+        return {
+          success: false,
+          message: srvData.error || srvData.message || `GitHub পুশ ব্যর্থ হয়েছে (${srvRes.status})`,
+          error: srvData.error || srvData.message
+        };
       }
     } catch {
-      // Fallback to direct client-side GitHub REST API
+      // Fallback to direct client-side GitHub REST API only if /api/github/push is unreachable
     }
 
     // 2. Direct client-side GitHub REST API (100% works on Vercel Static!)

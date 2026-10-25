@@ -101,8 +101,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
       branch: branch.trim(),
       autoPushEnabled: autoPush
     });
-    triggerNotification('GitHub কনফিগারেশন সংরক্ষিত হয়েছে!');
-    alert('✅ GitHub একক ডাটাবেজ কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!');
+    triggerNotification('✅ GitHub কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!');
   };
 
   const handleManualPush = async () => {
@@ -127,12 +126,13 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
           commitUrl: res.commitUrl,
           commitSha: res.commitSha
         });
-        triggerNotification('GitHub-এ পুশ সম্পন্ন! Vercel স্বয়ংক্রিয়ভাবে নতুন বিল্ড শুরু করেছে।');
+        triggerNotification('✓ GitHub-এ পুশ সম্পন্ন! Vercel স্বয়ংক্রিয়ভাবে নতুন বিল্ড শুরু করেছে।');
       } else {
         setPushResult({
           success: false,
           message: res.message || 'GitHub পুশ ব্যর্থ হয়েছে। অনুগ্রহ করে টোকেন ও পারমিশন চেক করুন।'
         });
+        triggerNotification('⚠️ GitHub পুশ ব্যর্থ হয়েছে। বিস্তারিত নিচে দেখুন।');
       }
     } catch (e: any) {
       setPushResult({
@@ -149,13 +149,12 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
     try {
       const res = await githubDataService.pullLatestData();
       if (res.success) {
-        triggerNotification('GitHub থেকে সর্বশেষ ডাটা সফলভাবে নামানো হয়েছে!');
-        alert('✅ আলহামদুলিল্লাহ! GitHub রিপোজিটরির data/institute_db.json থেকে সর্বশেষ ডাটা আপনার ব্রাউজারে সিঙ্ক হয়েছে।');
+        triggerNotification('✅ আলহামদুলিল্লাহ! GitHub থেকে সর্বশেষ ডাটা সফলভাবে সিঙ্ক হয়েছে!');
       } else {
-        alert('⚠️ GitHub থেকে ডাটা রিড করা যায়নি। ইন্টারনেট সংযোগ ও রিপোজিটরি নাম পরীক্ষা করুন।');
+        triggerNotification('⚠️ GitHub থেকে ডাটা রিড করা যায়নি। ইন্টারনেট সংযোগ ও রিপোজিটরি নাম পরীক্ষা করুন।');
       }
     } catch (e: any) {
-      alert(`⚠️ ত্রুটি: ${e?.message || 'GitHub থেকে ডাটা নামানো যায়নি'}`);
+      triggerNotification(`⚠️ ত্রুটি: ${e?.message || 'GitHub থেকে ডাটা নামানো যায়নি'}`);
     } finally {
       setPulling(false);
     }

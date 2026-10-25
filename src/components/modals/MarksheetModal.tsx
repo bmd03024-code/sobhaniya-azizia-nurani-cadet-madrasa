@@ -237,6 +237,7 @@ export const MarksheetModal: React.FC<MarksheetModalProps> = ({ isOpen, onClose,
                 <Search className="w-4 h-4 text-amber-400" />
                 <span>ফলাফল অনুসন্ধান করুন</span>
               </button>
+            </div>
           </form>
 
           {/* Error / Not Found Alert */}

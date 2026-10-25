@@ -19,6 +19,7 @@ import {
   FeeItemBreakdown
 } from '../../types';
 import { storage } from '../../services/storage';
+import { githubDataService } from '../../services/githubDataService';
 import { ResultGeneratorModule } from './ResultGeneratorModule';
 import { GitHubSyncModal } from './GitHubSyncModal';
 import {
@@ -251,6 +252,35 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
     setTimeout(() => setNotification(null), 3500);
   };
 
+  // Real-Time Synchronizer for Admin Dashboard
+  useEffect(() => {
+    const handleSync = (e: any) => {
+      const detail = e.detail || {};
+      const key = detail.key;
+      // Refresh dashboard state on incoming live sync
+      if (detail.fromServer || detail.fromGitHub || detail.fromGateway || key === 'all') {
+        setSettings(storage.getSettings());
+        setClasses(storage.getClasses());
+        setSubjects(storage.getSubjects());
+        setTeachers(storage.getTeachers());
+        setStudents(storage.getStudents());
+        setApplications(storage.getApplications());
+        setResults(storage.getResults());
+        setClassRoutines(storage.getClassRoutines());
+        setExamRoutines(storage.getExamRoutines());
+        setUploadedRoutines(storage.getUploadedRoutines());
+        setLedger(storage.getLedger());
+        setNotices(storage.getNotices());
+        setGallery(storage.getGallery());
+        setCertificates(storage.getCertificates());
+        setFeeBills(storage.getFeeBills());
+      }
+    };
+
+    window.addEventListener('bs_sync', handleSync);
+    return () => window.removeEventListener('bs_sync', handleSync);
+  }, []);
+
   // Master Save Function
   const handleSaveAll = () => {
     storage.saveSettings(settings);
@@ -270,10 +300,24 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
     storage.saveAdminCredentials(creds);
     storage.saveFeeBills(feeBills);
 
-    if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all' } }));
-    }
-    triggerNotification('✓ সকল তথ্য সফলভাবে ক্লাউড ও সিস্টেমে সংরক্ষিত হয়েছে!');
+    triggerNotification('✓ সকল তথ্য ব্রাউজার ও লাইভ ডাটাবেজে সংরক্ষিত হয়েছে!');
+
+    // Trigger instant commit to GitHub if configured
+    try {
+      const fullDb = storage.getFullDatabase();
+      const cfg = githubDataService.getConfig();
+      if (cfg.token) {
+        githubDataService.commitAndPush(fullDb, `Admin Manual Save: ${new Date().toLocaleTimeString('bn-BD')}`)
+          .then((res) => {
+            if (res.success) {
+              triggerNotification('✓ GitHub ও Vercel-এ সফলভাবে ডাটা সিঙ্ক সম্পন্ন হয়েছে!');
+            } else {
+              triggerNotification(`⚠️ GitHub পুশ নোটিস: ${res.message}`);
+            }
+          })
+          .catch(() => {});
+      }
+    } catch {}
   };
 
   // Fee Management Handlers

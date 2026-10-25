@@ -25,6 +25,7 @@ import {
   FeeItemBreakdown
 } from '../types';
 import { githubDataService } from './githubDataService';
+import { masterGateway } from './masterGateway';
 
 // Default Islamic Badges, Seals, and Signatures
 export const DEFAULT_ASSETS = {
@@ -649,15 +650,17 @@ class MadrasahStorageService {
       localStorage.setItem(`bs_${key}_time`, Date.now().toString());
     } catch {}
 
+    // 1. Instant 0ms UI update for the CURRENT window
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key, value } }));
+    }
+
+    // 2. Real-time Multi-Tab (BroadcastChannel) & Multi-Device (Socket.io + SSE) propagation
     try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        const bc = new BroadcastChannel('bs_master_gateway');
-        bc.postMessage({ key, value, timestamp: Date.now() });
-        bc.close();
-      }
+      masterGateway.publish(key, value).catch(() => {});
     } catch {}
 
-    this.pushToServer(key, value);
+    // 3. Automated push to GitHub single source of truth
     githubDataService.triggerAutoPush(() => this.getFullDatabase());
   }
 

@@ -194,6 +194,7 @@ export interface ResultRecord {
   className: string;
   examType: string; // ১ম সাময়িক, ২য় সাময়িক, বার্ষিক
   roll: string; // Roll = Student ID
+  studentId?: string;
   studentName: string;
   fatherName: string;
   motherName: string;

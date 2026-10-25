@@ -289,8 +289,12 @@ app.get('/api/live-sync', (req: Request, res: Response) => {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache, no-transform',
     'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
     'Access-Control-Allow-Origin': '*'
   });
+  if (typeof (res as any).flushHeaders === 'function') {
+    (res as any).flushHeaders();
+  }
 
   const clientId = `client-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
   sseClients.push({ id: clientId, res });
@@ -1029,15 +1033,21 @@ app.post('/api/github/save-config', (req: Request, res: Response) => {
   });
 });
 
+// Helper to normalize GitHub tokens and clean Bearer/token prefixes
+function normalizeGithubToken(rawToken?: string): string {
+  if (!rawToken) return '';
+  return rawToken.replace(/^(Bearer|token)\s+/i, '').trim();
+}
+
 // GitHub Auto-Push & Vercel Sync REST API Endpoints
 app.get('/api/github/status', async (req: Request, res: Response) => {
-  const token = (req.query.token as string) || savedGithubConfig.token || process.env.GITHUB_TOKEN || '';
-  const repo = (req.query.repo as string) || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa';
+  const token = normalizeGithubToken((req.query.token as string) || savedGithubConfig.token || process.env.GITHUB_TOKEN || '');
+  const repo = (req.query.repo as string || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa').trim();
 
   try {
     const headers: Record<string, string> = {
       'Accept': 'application/vnd.github.v3+json',
-      'User-Agent': 'Sobhaniya-Azizia-Cadet-Madrasah'
+      'User-Agent': 'Sobhaniya-Azizia-Cadet-Madrasah-Sync'
     };
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
@@ -1047,20 +1057,29 @@ app.get('/api/github/status', async (req: Request, res: Response) => {
     const data: any = await safeJsonFromResponse(ghRes, {});
 
     if (ghRes.ok) {
+      // Check write permissions
+      const canPush = Boolean(data.permissions?.push || Boolean(token));
       return res.json({
         success: true,
         connected: true,
         fullName: data.full_name || repo,
         defaultBranch: data.default_branch || 'main',
+        canPush,
         updatedAt: data.updated_at,
         htmlUrl: data.html_url
       });
     } else {
+      let errMsg = data.message || `GitHub HTTP Error ${ghRes.status}`;
+      if (ghRes.status === 401) {
+        errMsg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
+      } else if (ghRes.status === 404) {
+        errMsg = `রিপোজিটরি '${repo}' পাওয়া যায়নি অথবা এই টোকেনে রিপোজিটরি দেখার অ্যাক্সেস নেই।`;
+      }
       return res.json({
         success: false,
         connected: false,
         status: ghRes.status,
-        error: data.message || `GitHub HTTP Error ${ghRes.status}`
+        error: errMsg
       });
     }
   } catch (error: any) {
@@ -1072,12 +1091,121 @@ app.get('/api/github/status', async (req: Request, res: Response) => {
   }
 });
 
+// Helper function to commit a single file to GitHub with conflict retry
+async function putFileToGithub(
+  repo: string,
+  branch: string,
+  filePath: string,
+  contentBase64: string,
+  commitMsg: string,
+  token: string
+): Promise<{ ok: boolean; status: number; sha?: string; html_url?: string; error?: string }> {
+  const headers: Record<string, string> = {
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'User-Agent': 'BS-ELearning-Madrasah-Sync',
+    'Authorization': `Bearer ${token}`
+  };
+
+  const getSha = async (): Promise<string | undefined> => {
+    try {
+      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
+        headers: {
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'BS-ELearning-Madrasah-Sync',
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (getRes.ok) {
+        const fileInfo: any = await safeJsonFromResponse(getRes, {});
+        return fileInfo.sha;
+      }
+    } catch {}
+    return undefined;
+  };
+
+  let sha = await getSha();
+
+  const doPut = async (currentSha?: string) => {
+    const putPayload: any = {
+      message: commitMsg,
+      content: contentBase64,
+      branch
+    };
+    if (currentSha) {
+      putPayload.sha = currentSha;
+    }
+
+    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(putPayload)
+    });
+    const putData: any = await safeJsonFromResponse(putRes, {});
+    return { res: putRes, data: putData };
+  };
+
+  let { res, data } = await doPut(sha);
+
+  // If 409 conflict (SHA mismatch), refetch SHA and retry once
+  if (res.status === 409) {
+    console.log(`[GitHub Sync] SHA conflict on ${filePath}, retrying with latest SHA...`);
+    sha = await getSha();
+    const retry = await doPut(sha);
+    res = retry.res;
+    data = retry.data;
+  }
+
+  if (res.ok) {
+    return {
+      ok: true,
+      status: res.status,
+      sha: data.commit?.sha,
+      html_url: data.commit?.html_url
+    };
+  }
+
+  let errorMsg = data.message || `HTTP ${res.status}`;
+  if (res.status === 401) {
+    errorMsg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
+  } else if (res.status === 404) {
+    errorMsg = `রিপোজিটরি '${repo}' অথবা ব্রাঞ্চ '${branch}' পাওয়া যায়নি।`;
+  } else if (res.status === 403) {
+    errorMsg = 'GitHub টোকেনে ফাইল পুশ (Contents: Write) করার পারমিশন নেই। "repo" পারমিশনসহ নতুন Token দিন।';
+  }
+
+  return {
+    ok: false,
+    status: res.status,
+    error: errorMsg
+  };
+}
+
 app.post('/api/github/push', async (req: Request, res: Response) => {
-  const token = req.body.token || savedGithubConfig.token || process.env.GITHUB_TOKEN || '';
-  const repo = req.body.repo || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa';
-  const branch = req.body.branch || savedGithubConfig.branch || 'main';
+  const rawToken = req.body.token || savedGithubConfig.token || process.env.GITHUB_TOKEN || '';
+  const token = normalizeGithubToken(rawToken);
+  const repo = (req.body.repo || savedGithubConfig.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa').trim();
+  const branch = (req.body.branch || savedGithubConfig.branch || 'main').trim();
   const filePath = req.body.path || 'data/institute_db.json';
   const commitMsg = req.body.message || `Admin Auto-Sync: Updates to institute data [${new Date().toISOString()}]`;
+
+  if (!token) {
+    return res.status(400).json({
+      success: false,
+      error: 'GitHub Personal Access Token পাওয়া যায়নি। অনুগ্রহ করে GitHub সেটিংসে Token প্রদান করে সেভ করুন।'
+    });
+  }
+
+  // Update in-memory config and persist to disk so subsequent auto-pushes have it
+  if (token && token !== savedGithubConfig.token) {
+    savedGithubConfig.token = token;
+    savedGithubConfig.repo = repo;
+    savedGithubConfig.branch = branch;
+    try {
+      fs.writeFileSync(GITHUB_CONFIG_FILE, JSON.stringify(savedGithubConfig, null, 2), 'utf-8');
+      console.log('[GitHub Service] Updated persistent GitHub token on server');
+    } catch {}
+  }
 
   try {
     let contentStr = '';
@@ -1091,71 +1219,32 @@ app.post('/api/github/push', async (req: Request, res: Response) => {
 
     const contentBase64 = Buffer.from(contentStr, 'utf-8').toString('base64');
 
-    // 1. Check if file already exists in repository to get its current SHA
-    let existingSha: string | undefined;
-    if (token) {
-      try {
-        const getFileRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Accept': 'application/vnd.github.v3+json',
-            'User-Agent': 'BS-ELearning-Admin'
-          }
-        });
+    // 1. Commit primary file (data/institute_db.json)
+    const result1 = await putFileToGithub(repo, branch, filePath, contentBase64, commitMsg, token);
 
-        if (getFileRes.ok) {
-          const fileData: any = await safeJsonFromResponse(getFileRes, {});
-          existingSha = fileData.sha;
-        }
-      } catch (e) {
-        console.warn('[GitHub Sync] Could not fetch existing file SHA:', e);
-      }
-    }
-
-    // 2. Put file to commit directly to GitHub repository
-    const putPayload: any = {
-      message: commitMsg,
-      content: contentBase64,
-      branch
-    };
-    if (existingSha) {
-      putPayload.sha = existingSha;
-    }
-
-    const headers: Record<string, string> = {
-      'Accept': 'application/vnd.github.v3+json',
-      'Content-Type': 'application/json',
-      'User-Agent': 'BS-ELearning-Admin'
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(putPayload)
-    });
-
-    const putData: any = await safeJsonFromResponse(putRes, {});
-
-    if (putRes.ok) {
-      console.log(`[GitHub Sync] Successfully committed and pushed ${filePath} to ${repo}@${branch}`);
-      return res.json({
-        success: true,
-        commitSha: putData.commit?.sha,
-        commitUrl: putData.commit?.html_url,
-        message: 'সফলভাবে GitHub রিপোজিটরিতে ডাটা পুশ সম্পন্ন হয়েছে! Vercel স্বয়ংক্রিয়ভাবে লাইভ সাইট রি-ডিপ্লয় ও সিঙ্ক শুরু করেছে।'
-      });
-    } else {
-      console.warn('[GitHub Sync Warning]:', putData);
-      return res.status(putRes.status || 400).json({
+    if (!result1.ok) {
+      console.warn(`[GitHub Push Error]:`, result1.error);
+      return res.status(result1.status || 400).json({
         success: false,
-        error: putData.message || 'GitHub commit failed',
-        status: putRes.status,
-        documentationUrl: putData.documentation_url
+        error: result1.error,
+        status: result1.status
       });
     }
+
+    // 2. Also keep public/institute_db.json in sync on GitHub for Vercel static builds
+    try {
+      await putFileToGithub(repo, branch, 'public/institute_db.json', contentBase64, `${commitMsg} (public fallback)`, token);
+    } catch (e) {
+      console.warn('[GitHub Sync] Public fallback sync notice:', e);
+    }
+
+    console.log(`[GitHub Sync] Successfully committed and pushed to ${repo}@${branch} (Commit: ${result1.sha})`);
+    return res.json({
+      success: true,
+      commitSha: result1.sha,
+      commitUrl: result1.html_url || `https://github.com/${repo}/commit/${result1.sha}`,
+      message: 'সফলভাবে GitHub রিপোজিটরিতে ডাটা পুশ সম্পন্ন হয়েছে! Vercel স্বয়ংক্রিয়ভাবে লাইভ সাইট রি-ডিপ্লয় ও সিঙ্ক শুরু করেছে।'
+    });
   } catch (error: any) {
     console.error('[GitHub Push Exception]:', error);
     return res.status(500).json({
