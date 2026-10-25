@@ -292,7 +292,7 @@
         "মাসআলা ও সালাত",
         "বাংলা সাহিত্য"
       ],
-      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+      "photoUrl": "",
       "bloodGroup": "A+",
       "joiningDate": "2019-02-15",
       "bio": "শিক্ষার্থীদের নৈতিক চরিত্র গঠন ও আরবি ভাষার বুৎপত্তি অর্জনে বিশেষ ভূমিকা রাখছেন।"
@@ -887,6 +887,7 @@
       "roomNo": "হলরুম-১"
     }
   ],
+  "uploaded_routines": [],
   "ledger": [
     {
       "id": "led-1",
@@ -1014,6 +1015,119 @@
       "url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80",
       "category": "ক্যাম্পাস",
       "date": "২০২৬-০২-০৫"
+    }
+  ],
+  "certificates": [
+    {
+      "id": "cert-1",
+      "certificateNo": "CERT-2026-001",
+      "studentName": "মোহাম্মদ আব্দুল্লাহ",
+      "fatherName": "মাওলানা মো: কামরুল হাসান",
+      "motherName": "রোকেয়া বেগম",
+      "roll": "01",
+      "className": "১ম শ্রেণি",
+      "academicYear": "2026",
+      "examType": "বার্ষিক চূড়ান্ত মূল্যায়ন পরীক্ষা",
+      "gpa": 5,
+      "grade": "A+",
+      "issueDate": "2026-12-25",
+      "type": "বার্ষিক উত্তীর্ণ সনদপত্র"
+    }
+  ],
+  "fee_bills": [
+    {
+      "id": "bill-1",
+      "billNo": "BILL-2026-001",
+      "academicYear": "2026",
+      "className": "শিশু শ্রেণি",
+      "classId": "class-shishu",
+      "roll": "01",
+      "studentName": "মোহাম্মদ আব্দুল্লাহ",
+      "fatherName": "মাওলানা মো: কামরুল হাসান",
+      "phone": "+880 1816-027456",
+      "month": "জানুয়ারি",
+      "items": [
+        {
+          "id": "item-1",
+          "title": "মাসিক বেতন",
+          "amount": 500
+        },
+        {
+          "id": "item-2",
+          "title": "সেশন চার্জ",
+          "amount": 200
+        },
+        {
+          "id": "item-3",
+          "title": "আইডি কার্ড ও ডায়েরি ফি",
+          "amount": 150
+        }
+      ],
+      "totalAmount": 850,
+      "status": "unpaid",
+      "publishDate": "2026-01-05",
+      "notes": "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
+    },
+    {
+      "id": "bill-2",
+      "billNo": "BILL-2026-002",
+      "academicYear": "2026",
+      "className": "শিশু শ্রেণি",
+      "classId": "class-shishu",
+      "roll": "02",
+      "studentName": "ফাতিমা বিনতে হাসান",
+      "fatherName": "হাসান মাহমুদ",
+      "phone": "+880 1711-223344",
+      "month": "জানুয়ারি",
+      "items": [
+        {
+          "id": "item-1",
+          "title": "মাসিক বেতন",
+          "amount": 500
+        },
+        {
+          "id": "item-2",
+          "title": "সেশন চার্জ",
+          "amount": 200
+        }
+      ],
+      "totalAmount": 700,
+      "status": "unpaid",
+      "publishDate": "2026-01-05",
+      "notes": "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
+    },
+    {
+      "id": "bill-3",
+      "billNo": "BILL-2026-003",
+      "academicYear": "2026",
+      "className": "১ম শ্রেণি",
+      "classId": "class-1",
+      "roll": "01",
+      "studentName": "আহমাদ উল্লাহ",
+      "fatherName": "আব্দুল কুদ্দুস",
+      "phone": "+880 1812-345678",
+      "month": "জানুয়ারি",
+      "items": [
+        {
+          "id": "item-1",
+          "title": "মাসিক বেতন",
+          "amount": 600
+        },
+        {
+          "id": "item-2",
+          "title": "পরীক্ষা ফি",
+          "amount": 250
+        },
+        {
+          "id": "item-3",
+          "title": "বিদ্যুৎ ও সংস্কার ফি",
+          "amount": 100
+        }
+      ],
+      "totalAmount": 950,
+      "status": "unpaid",
+      "publishDate": "2026-01-05",
+      "notes": "মাদ্রাসার হিসাব শাখায় সরাসরি এসে নগদ জমা দিন।"
     }
   ]
 }
