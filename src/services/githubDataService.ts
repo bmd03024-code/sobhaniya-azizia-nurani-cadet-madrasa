@@ -98,17 +98,26 @@ export function sanitizeDataForGithub(data: any): any {
   if (!data || typeof data !== 'object') return data;
   const clone = JSON.parse(JSON.stringify(data));
 
+  // Detect common credential names and secret formats before data is committed.
+  const secretValuePattern =
+    /(gh[pousr]_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|AIza[0-9A-Za-z_-]{30,}|AKIA[0-9A-Z]{16}|xox[baprs]-[A-Za-z0-9-]{10,}|sk_live_[A-Za-z0-9]{16,}|sk_test_[A-Za-z0-9]{16,}|-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----|-----BEGIN PGP PRIVATE KEY BLOCK-----|Bearer\s+[A-Za-z0-9._~+/-]{20,})/i;
+
   const cleanObject = (obj: any) => {
     if (!obj || typeof obj !== 'object') return;
 
     for (const key of Object.keys(obj)) {
-      const lKey = key.toLowerCase();
-      // Remove any credentials, tokens, passwords, or keys
+      const lKey = key.toLowerCase().replace(/[-\s]/g, '_');
       if (
         lKey.includes('token') ||
         lKey.includes('apikey') ||
+        lKey.includes('api_key') ||
         lKey.includes('secret') ||
         lKey.includes('password') ||
+        lKey.includes('passwd') ||
+        lKey.includes('credential') ||
+        lKey.includes('private_key') ||
+        lKey.includes('access_key') ||
+        lKey === 'authorization' ||
         lKey === 'admin_creds' ||
         lKey === 'masterpin' ||
         lKey === 'pin'
@@ -116,13 +125,9 @@ export function sanitizeDataForGithub(data: any): any {
         delete obj[key];
       } else if (typeof obj[key] === 'object' && obj[key] !== null) {
         cleanObject(obj[key]);
-      } else if (typeof obj[key] === 'string') {
-        // Strip any secret pattern if found anywhere inside the string
-        if (
-          /(ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{30,}|gho_[a-zA-Z0-9]{20,}|ghu_[a-zA-Z0-9]{20,}|ghs_[a-zA-Z0-9]{20,}|ghr_[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z\-_]{30,}|gsk_[a-zA-Z0-9]{20,}|sk-or-v1-[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{20,})/i.test(obj[key])
-        ) {
-          obj[key] = '';
-        }
+      } else if (typeof obj[key] === 'string' && secretValuePattern.test(obj[key])) {
+        // Drop the value rather than attempting to partially redact a credential.
+        obj[key] = '';
       }
     }
   };
