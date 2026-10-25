@@ -58,17 +58,39 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      testGitHubConnection();
+      if (token && token.trim()) {
+        testGitHubConnection();
+      } else {
+        setConnectionStatus({
+          connected: false,
+          message: 'GitHub Token এখনও প্রদান করা হয়নি। নিচে আপনার Personal Access Token পেস্ট করে "কানেকশন টেস্ট" বা সেভ করুন।'
+        });
+      }
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
 
+  const sanitizeToken = (raw: string) => {
+    return raw.trim().replace(/^["']|["']$/g, '').replace(/^(Bearer|token)\s+/i, '');
+  };
+
   const testGitHubConnection = async () => {
+    const cleanToken = sanitizeToken(token);
+    const cleanRepo = repo.trim();
+
+    if (!cleanToken) {
+      setConnectionStatus({
+        connected: false,
+        message: 'কোনো GitHub Token পাওয়া যায়নি। অনুগ্রহ করে Personal Access Token প্রদান করুন।'
+      });
+      return;
+    }
+
     setTestingConnection(true);
     setConnectionStatus(null);
     try {
-      const res = await githubDataService.testConnection(token.trim(), repo.trim());
+      const res = await githubDataService.testConnection(cleanToken, cleanRepo);
       setConnectionStatus({
         connected: res.connected,
         message: res.message,
@@ -78,7 +100,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
     } catch (e: any) {
       setConnectionStatus({
         connected: false,
-        message: 'নেটওয়ার্ক এরর অথবা GitHub সার্ভার রেসপন্স পাওয়া যায়নি।'
+        message: e?.message || 'নেটওয়ার্ক এরর অথবা GitHub সার্ভার রেসপন্স পাওয়া যায়নি।'
       });
     } finally {
       setTestingConnection(false);
@@ -86,25 +108,41 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
   };
 
   const handleSaveConfig = () => {
+    const cleanToken = sanitizeToken(token);
+    const cleanRepo = repo.trim();
+    const cleanBranch = branch.trim();
+
+    setToken(cleanToken);
+
     const updated: InstituteSettings = {
       ...settings,
-      githubToken: token.trim(),
-      githubRepo: repo.trim(),
-      githubBranch: branch.trim(),
+      githubToken: cleanToken,
+      githubRepo: cleanRepo,
+      githubBranch: cleanBranch,
       githubAutoPushEnabled: autoPush
     };
     onUpdateSettings(updated);
     storage.saveSettings(updated);
     githubDataService.saveConfig({
-      token: token.trim(),
-      repo: repo.trim(),
-      branch: branch.trim(),
+      token: cleanToken,
+      repo: cleanRepo,
+      branch: cleanBranch,
       autoPushEnabled: autoPush
     });
     triggerNotification('✅ GitHub কনফিগারেশন সফলভাবে সংরক্ষিত হয়েছে!');
   };
 
   const handleManualPush = async () => {
+    const cleanToken = sanitizeToken(token);
+    if (!cleanToken) {
+      setPushResult({
+        success: false,
+        message: 'GitHub Token ছাড়া পুশ করা সম্ভব নয়। অনুগ্রহ করে আপনার টোকেন প্রদান করুন।'
+      });
+      triggerNotification('⚠️ টোকেন প্রদান করা হয়নি।');
+      return;
+    }
+
     setPushing(true);
     setPushResult(null);
 
@@ -116,7 +154,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
       const res = await githubDataService.commitAndPush(
         fullDb,
         `Admin Auto-Sync: Updates to BS E-Learning database [${new Date().toLocaleString('bn-BD')}]`,
-        token.trim()
+        cleanToken
       );
 
       if (res.success) {

@@ -231,11 +231,13 @@ export default function App() {
         />
 
         <CoursesSection
+          classes={classes}
           onEnrollClass={handleEnrollClass}
           settings={settings}
         />
 
         <MonthlyFeePaymentSection
+          classes={classes}
           settings={settings}
         />
 
@@ -271,6 +273,7 @@ export default function App() {
       <EnrollModal
         isOpen={enrollModalOpen}
         initialClass={targetClassForEnroll}
+        classes={classes}
         settings={settings}
         onClose={() => setEnrollModalOpen(false)}
         onSuccess={() => {}}
@@ -278,21 +281,25 @@ export default function App() {
 
       <AdmitCardModal
         isOpen={admitModalOpen}
+        classes={classes}
         onClose={() => setAdmitModalOpen(false)}
       />
 
       <MarksheetModal
         isOpen={marksheetModalOpen}
+        classes={classes}
         onClose={() => setMarksheetModalOpen(false)}
       />
 
       <CertificateModal
         isOpen={certificateModalOpen}
+        classes={classes}
         onClose={() => setCertificateModalOpen(false)}
       />
 
       <RoutineModal
         isOpen={routineModalOpen}
+        classes={classes}
         onClose={() => setRoutineModalOpen(false)}
       />
 
@@ -304,6 +311,7 @@ export default function App() {
 
       <StudentIdCardModal
         isOpen={idCardModalOpen}
+        classes={classes}
         onClose={() => setIdCardModalOpen(false)}
       />
 

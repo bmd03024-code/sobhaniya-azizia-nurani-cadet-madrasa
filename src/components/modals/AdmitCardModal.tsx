@@ -6,11 +6,12 @@ import { X, Ticket, Search, Printer, AlertCircle, ShieldAlert, CheckCircle2, Use
 interface AdmitCardModalProps {
   isOpen: boolean;
   onClose: () => void;
+  classes?: MadrasahClass[];
   courses?: any[]; // backwards compatibility
 }
 
-export const AdmitCardModal: React.FC<AdmitCardModalProps> = ({ isOpen, onClose }) => {
-  const classes: MadrasahClass[] = storage.getClasses();
+export const AdmitCardModal: React.FC<AdmitCardModalProps> = ({ isOpen, onClose, classes: propClasses }) => {
+  const classes: MadrasahClass[] = propClasses || storage.getClasses();
   const exams = storage.getExams();
   const settings = storage.getSettings();
 

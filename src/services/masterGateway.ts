@@ -151,18 +151,28 @@ class MasterGatewayEngine {
       this.status.broadcastChannelReady = true;
 
       this.channel.onmessage = (event) => {
-        const { key, value } = event.data || {};
-        if (key) {
+        const payload = event.data || {};
+        if (payload.type === 'SYNC_ALL' && payload.data) {
+          this.status.totalReceives++;
+          this.status.lastSyncTime = Date.now();
+          this.notifyStatus();
+          for (const [k, v] of Object.entries(payload.data)) {
+            try {
+              localStorage.setItem(`bs_${k}`, JSON.stringify(v));
+            } catch {}
+          }
+          this.dispatchChange('all', payload.data, 'broadcast');
+        } else if (payload.key) {
           this.status.totalReceives++;
           this.status.lastSyncTime = Date.now();
           this.notifyStatus();
 
           // Sync into localStorage
           try {
-            localStorage.setItem(`bs_${key}`, JSON.stringify(value));
+            localStorage.setItem(`bs_${payload.key}`, JSON.stringify(payload.value));
           } catch {}
 
-          this.dispatchChange(key, value, 'broadcast');
+          this.dispatchChange(payload.key, payload.value, 'broadcast');
         }
       };
     } catch (e) {
@@ -180,10 +190,12 @@ class MasterGatewayEngine {
     try {
       this.socket = io({
         path: '/socket.io',
-        transports: ['websocket', 'polling'],
-        reconnectionAttempts: 5,
-        reconnectionDelay: 2000,
-        timeout: 10000
+        transports: ['polling', 'websocket'],
+        reconnection: true,
+        reconnectionAttempts: Infinity,
+        reconnectionDelay: 1000,
+        reconnectionDelayMax: 5000,
+        timeout: 15000
       });
 
       this.socket.on('connect', () => {
@@ -281,6 +293,19 @@ class MasterGatewayEngine {
             } catch {}
 
             this.dispatchChange(payload.key, payload.value, 'sse');
+          } else if (payload.type === 'SYNC_ALL') {
+            this.status.totalReceives++;
+            this.status.lastSyncTime = Date.now();
+            this.notifyStatus();
+
+            if (payload.data && typeof payload.data === 'object') {
+              for (const [k, v] of Object.entries(payload.data)) {
+                try {
+                  localStorage.setItem(`bs_${k}`, JSON.stringify(v));
+                } catch {}
+              }
+            }
+            this.dispatchChange('all', payload.data, 'sse');
           }
         } catch {}
       };

@@ -544,10 +544,6 @@ class MadrasahStorageService {
 
   constructor() {
     this.initLiveSync();
-    if (typeof window !== 'undefined') {
-      githubDataService.pullLatestData().catch(() => {});
-      githubDataService.startAutoPoll(60);
-    }
   }
 
   public initLiveSync() {
@@ -562,7 +558,15 @@ class MadrasahStorageService {
           if (payload.type === 'SYNC_UPDATE' && payload.key) {
             this.setLocalSilently(payload.key, payload.value);
             window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: payload.key, value: payload.value, fromServer: true } }));
-          } else if (payload.type === 'SYNC_ALL' || payload.type === 'AI_UPDATE') {
+          } else if (payload.type === 'SYNC_ALL') {
+            if (payload.data && typeof payload.data === 'object') {
+              for (const [k, v] of Object.entries(payload.data)) {
+                this.setLocalSilently(k, v);
+              }
+            }
+            if (payload.version) this.currentDbVersion = payload.version;
+            window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromServer: true } }));
+          } else if (payload.type === 'AI_UPDATE') {
             this.hydrateFromServer();
           }
         } catch {}
@@ -576,7 +580,7 @@ class MadrasahStorageService {
 
   private async checkServerVersion() {
     try {
-      const res = await fetch('/api/sync/version');
+      const res = await fetch('/api/sync/version?t=' + Date.now(), { cache: 'no-store' });
       if (res.ok) {
         const { version } = await res.json();
         if (version && version > this.currentDbVersion) {
@@ -592,11 +596,11 @@ class MadrasahStorageService {
       let version = 0;
 
       try {
-        const res = await fetch('/api/sync/all');
+        const res = await fetch('/api/sync/all?t=' + Date.now(), { cache: 'no-store' });
         const cType = res.headers.get('content-type') || '';
         if (res.ok && cType.includes('application/json')) {
           const json = await res.json();
-          if (json && json.data && typeof json.data === 'object') {
+          if (json && json.data && typeof json.data === 'object' && Object.keys(json.data).length > 0) {
             data = json.data;
             if (json.version) version = json.version;
           }
@@ -606,7 +610,7 @@ class MadrasahStorageService {
       if (!data) {
         for (const url of ['/institute_db.json', '/data/institute_db.json']) {
           try {
-            const res = await fetch(url);
+            const res = await fetch(url + '?t=' + Date.now(), { cache: 'no-store' });
             const cType = res.headers.get('content-type') || '';
             if (res.ok && cType.includes('application/json')) {
               const parsed = await res.json();
@@ -621,7 +625,11 @@ class MadrasahStorageService {
 
       if (data && typeof data === 'object') {
         for (const key of Object.keys(data)) {
-          this.setLocalSilently(key, data[key]);
+          // If local key is empty, populate from server
+          const currentLocal = localStorage.getItem(`bs_${key}`);
+          if (!currentLocal) {
+            this.setLocalSilently(key, data[key]);
+          }
         }
         if (version) this.currentDbVersion = version;
         window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromServer: true } }));
@@ -664,14 +672,27 @@ class MadrasahStorageService {
     githubDataService.triggerAutoPush(() => this.getFullDatabase());
   }
 
-  private async pushToServer(key: string, value: any) {
+  public saveAll(fullDb: Record<string, any>): void {
+    const timestamp = Date.now().toString();
+    for (const [key, value] of Object.entries(fullDb)) {
+      this.setLocalSilently(key, value);
+      try {
+        localStorage.setItem(`bs_${key}_time`, timestamp);
+      } catch {}
+    }
+
+    // 1. Instant 0ms UI update for the CURRENT window
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', data: fullDb } }));
+    }
+
+    // 2. Real-time Multi-Tab & Server sync in single atomic call
     try {
-      await fetch('/api/sync/update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key, value })
-      });
+      masterGateway.publishAll(fullDb).catch(() => {});
     } catch {}
+
+    // 3. Automated push to GitHub single source of truth
+    githubDataService.triggerAutoPush(() => fullDb);
   }
 
   public getFullDatabase(): Record<string, any> {

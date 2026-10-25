@@ -19,6 +19,7 @@ import { toBengaliNum } from './CoursesSection';
 
 interface MonthlyFeePaymentSectionProps {
   courses?: any[];
+  classes?: MadrasahClass[];
   settings: InstituteSettings;
 }
 
@@ -37,8 +38,8 @@ const MONTHS_LIST = [
   'ডিসেম্বর'
 ];
 
-export const MonthlyFeePaymentSection: React.FC<MonthlyFeePaymentSectionProps> = ({ settings }) => {
-  const classes: MadrasahClass[] = storage.getClasses();
+export const MonthlyFeePaymentSection: React.FC<MonthlyFeePaymentSectionProps> = ({ settings, classes: propClasses }) => {
+  const classes: MadrasahClass[] = propClasses || storage.getClasses();
 
   // Search filter states (NO amount field!)
   const [academicYear, setAcademicYear] = useState('2026');

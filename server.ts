@@ -116,10 +116,11 @@ let sseClients: SSEClient[] = [];
 // Broadcast changes to all connected client browsers worldwide in real-time
 function broadcastUpdate(type: 'SYNC_UPDATE' | 'SYNC_ALL' | 'AI_UPDATE', key?: string, value?: any) {
   dbVersion++;
-  const payloadObj = {
+  const payloadObj: Record<string, any> = {
     type,
     key,
     value,
+    data: type === 'SYNC_ALL' ? database : undefined,
     version: dbVersion,
     timestamp: Date.now()
   };
@@ -1033,10 +1034,32 @@ app.post('/api/github/save-config', (req: Request, res: Response) => {
   });
 });
 
-// Helper to normalize GitHub tokens and clean Bearer/token prefixes
+// Helper to normalize GitHub tokens and clean Bearer/token prefixes, spaces, quotes
 function normalizeGithubToken(rawToken?: string): string {
   if (!rawToken) return '';
-  return rawToken.replace(/^(Bearer|token)\s+/i, '').trim();
+  return rawToken
+    .replace(/^(Bearer|token)\s+/i, '')
+    .replace(/["']/g, '')
+    .trim();
+}
+
+// Generate the exact GitHub API Authorization header needed
+function getGithubAuthHeader(rawToken: string): string {
+  const token = normalizeGithubToken(rawToken);
+  if (!token) return '';
+  // Classic personal access tokens start with ghp_, gho_, ghu_, ghs_, ghr_ or legacy 40-char hex
+  if (
+    token.startsWith('ghp_') ||
+    token.startsWith('gho_') ||
+    token.startsWith('ghu_') ||
+    token.startsWith('ghs_') ||
+    token.startsWith('ghr_') ||
+    /^[a-f0-9]{40}$/i.test(token)
+  ) {
+    return `token ${token}`;
+  }
+  // Fine-grained personal access tokens (github_pat_...) and others
+  return `Bearer ${token}`;
 }
 
 // GitHub Auto-Push & Vercel Sync REST API Endpoints
@@ -1049,15 +1072,15 @@ app.get('/api/github/status', async (req: Request, res: Response) => {
       'Accept': 'application/vnd.github.v3+json',
       'User-Agent': 'Sobhaniya-Azizia-Cadet-Madrasah-Sync'
     };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+    const auth = getGithubAuthHeader(token);
+    if (auth) {
+      headers['Authorization'] = auth;
     }
 
     const ghRes = await fetch(`https://api.github.com/repos/${repo}`, { headers });
     const data: any = await safeJsonFromResponse(ghRes, {});
 
     if (ghRes.ok) {
-      // Check write permissions
       const canPush = Boolean(data.permissions?.push || Boolean(token));
       return res.json({
         success: true,
@@ -1074,6 +1097,8 @@ app.get('/api/github/status', async (req: Request, res: Response) => {
         errMsg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
       } else if (ghRes.status === 404) {
         errMsg = `রিপোজিটরি '${repo}' পাওয়া যায়নি অথবা এই টোকেনে রিপোজিটরি দেখার অ্যাক্সেস নেই।`;
+      } else if (ghRes.status === 403) {
+        errMsg = data.message || 'GitHub টোকেনে পারমিশন সীমাবদ্ধ অথবা রেট লিমিট শেষ হয়েছে।';
       }
       return res.json({
         success: false,
@@ -1100,85 +1125,133 @@ async function putFileToGithub(
   commitMsg: string,
   token: string
 ): Promise<{ ok: boolean; status: number; sha?: string; html_url?: string; error?: string }> {
+  const authHeader = getGithubAuthHeader(token);
   const headers: Record<string, string> = {
     'Accept': 'application/vnd.github.v3+json',
     'Content-Type': 'application/json',
-    'User-Agent': 'BS-ELearning-Madrasah-Sync',
-    'Authorization': `Bearer ${token}`
+    'User-Agent': 'Sobhaniya-Azizia-Madrasah-Sync',
+    'Authorization': authHeader
   };
 
-  const getSha = async (): Promise<string | undefined> => {
+  const getFileInfo = async (): Promise<{ ok: boolean; status: number; sha?: string; message?: string }> => {
     try {
-      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
-        headers: {
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'BS-ELearning-Madrasah-Sync',
-          'Authorization': `Bearer ${token}`
-        }
+      const getRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, {
+        headers,
+        cache: 'no-store'
       });
+      const data: any = await safeJsonFromResponse(getRes, {});
       if (getRes.ok) {
-        const fileInfo: any = await safeJsonFromResponse(getRes, {});
-        return fileInfo.sha;
+        return { ok: true, status: getRes.status, sha: data.sha };
+      }
+      return { ok: false, status: getRes.status, message: data.message };
+    } catch (e: any) {
+      return { ok: false, status: 500, message: e?.message };
+    }
+  };
+
+  // 1. Fetch existing file info to obtain SHA
+  let sha: string | undefined = undefined;
+  const initial = await getFileInfo();
+
+  if (initial.ok && initial.sha) {
+    sha = initial.sha;
+  } else if (initial.status === 401) {
+    return {
+      ok: false,
+      status: 401,
+      error: 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)। অনুগ্রহ করে একটি নতুন Token দিয়ে চেষ্টা করুন।'
+    };
+  } else if (initial.status === 403) {
+    return {
+      ok: false,
+      status: 403,
+      error: initial.message || 'GitHub টোকেনে পারমিশন সীমাবদ্ধ অথবা রেট লিমিট শেষ হয়েছে। টোকেনে "repo" পারমিশন দিন।'
+    };
+  } else if (initial.status === 404) {
+    // Verify repository exists
+    try {
+      const repoCheck = await fetch(`https://api.github.com/repos/${repo}`, { headers });
+      if (!repoCheck.ok) {
+        if (repoCheck.status === 404) {
+          return { ok: false, status: 404, error: `রিপোজিটরি '${repo}' পাওয়া যায়নি অথবা এই টোকেনে রিপোজিটরি দেখার অ্যাক্সেস নেই।` };
+        }
+        if (repoCheck.status === 401) {
+          return { ok: false, status: 401, error: 'GitHub Token টি সঠিক নয় (Bad Credentials)।' };
+        }
       }
     } catch {}
-    return undefined;
-  };
+    // File not found on repo, so sha remains undefined (new file)
+    sha = undefined;
+  }
 
-  let sha = await getSha();
-
-  const doPut = async (currentSha?: string) => {
+  // 2. Commit file with conflict retry
+  for (let attempt = 1; attempt <= 3; attempt++) {
     const putPayload: any = {
       message: commitMsg,
       content: contentBase64,
       branch
     };
-    if (currentSha) {
-      putPayload.sha = currentSha;
+    if (sha) {
+      putPayload.sha = sha;
     }
 
-    const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(putPayload)
-    });
-    const putData: any = await safeJsonFromResponse(putRes, {});
-    return { res: putRes, data: putData };
-  };
+    try {
+      const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(putPayload)
+      });
+      const putData: any = await safeJsonFromResponse(putRes, {});
 
-  let { res, data } = await doPut(sha);
+      if (putRes.ok) {
+        return {
+          ok: true,
+          status: putRes.status,
+          sha: putData.commit?.sha,
+          html_url: putData.commit?.html_url
+        };
+      }
 
-  // If 409 conflict (SHA mismatch), refetch SHA and retry once
-  if (res.status === 409) {
-    console.log(`[GitHub Sync] SHA conflict on ${filePath}, retrying with latest SHA...`);
-    sha = await getSha();
-    const retry = await doPut(sha);
-    res = retry.res;
-    data = retry.data;
+      // If SHA conflict (409), refetch latest SHA and retry
+      if (putRes.status === 409 && attempt < 3) {
+        console.log(`[GitHub Sync] SHA conflict on ${filePath} (attempt ${attempt}), refetching latest SHA...`);
+        const refetch = await getFileInfo();
+        if (refetch.ok && refetch.sha) {
+          sha = refetch.sha;
+          continue;
+        }
+      }
+
+      let errorMsg = putData.message || `HTTP ${putRes.status}`;
+      if (putRes.status === 401) {
+        errorMsg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
+      } else if (putRes.status === 404) {
+        errorMsg = `রিপোজিটরি '${repo}' অথবা ব্রাঞ্চ '${branch}' পাওয়া যায়নি।`;
+      } else if (putRes.status === 403) {
+        errorMsg = 'GitHub টোকেনে ফাইল পুশ (Contents: Write) করার পারমিশন নেই। টোকেনে "repo" পারমিশন দিন।';
+      } else if (putRes.status === 409) {
+        errorMsg = 'GitHub-এ ফাইল কনফ্লিক্ট হয়েছে। অনুগ্রহ করে আরেকবার চেষ্টা করুন।';
+      } else if (putRes.status === 422) {
+        errorMsg = `GitHub ভ্যালিডেশন ত্রুটি (422): ${putData.message || 'SHA মেলেনি বা ডেটা ফরম্যাট সঠিক নয়।'}`;
+      }
+
+      return {
+        ok: false,
+        status: putRes.status,
+        error: errorMsg
+      };
+    } catch (putErr: any) {
+      if (attempt === 3) {
+        return {
+          ok: false,
+          status: 500,
+          error: putErr?.message || 'GitHub সংযোগ বিচ্ছিন্ন হয়েছে।'
+        };
+      }
+    }
   }
 
-  if (res.ok) {
-    return {
-      ok: true,
-      status: res.status,
-      sha: data.commit?.sha,
-      html_url: data.commit?.html_url
-    };
-  }
-
-  let errorMsg = data.message || `HTTP ${res.status}`;
-  if (res.status === 401) {
-    errorMsg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
-  } else if (res.status === 404) {
-    errorMsg = `রিপোজিটরি '${repo}' অথবা ব্রাঞ্চ '${branch}' পাওয়া যায়নি।`;
-  } else if (res.status === 403) {
-    errorMsg = 'GitHub টোকেনে ফাইল পুশ (Contents: Write) করার পারমিশন নেই। "repo" পারমিশনসহ নতুন Token দিন।';
-  }
-
-  return {
-    ok: false,
-    status: res.status,
-    error: errorMsg
-  };
+  return { ok: false, status: 500, error: 'সর্বোচ্চ চেষ্টার পরও GitHub পুশ সম্পন্ন হয়নি।' };
 }
 
 app.post('/api/github/push', async (req: Request, res: Response) => {
@@ -1197,7 +1270,7 @@ app.post('/api/github/push', async (req: Request, res: Response) => {
   }
 
   // Update in-memory config and persist to disk so subsequent auto-pushes have it
-  if (token && token !== savedGithubConfig.token) {
+  if (token) {
     savedGithubConfig.token = token;
     savedGithubConfig.repo = repo;
     savedGithubConfig.branch = branch;
@@ -1209,12 +1282,28 @@ app.post('/api/github/push', async (req: Request, res: Response) => {
 
   try {
     let contentStr = '';
+    let parsedContent: any = null;
     if (req.body.content) {
-      contentStr = typeof req.body.content === 'string' ? req.body.content : JSON.stringify(req.body.content, null, 2);
+      if (typeof req.body.content === 'string') {
+        contentStr = req.body.content;
+        try { parsedContent = JSON.parse(req.body.content); } catch {}
+      } else {
+        parsedContent = req.body.content;
+        contentStr = JSON.stringify(req.body.content, null, 2);
+      }
     } else if (fs.existsSync(DB_FILE)) {
       contentStr = fs.readFileSync(DB_FILE, 'utf-8');
+      try { parsedContent = JSON.parse(contentStr); } catch {}
     } else {
+      parsedContent = database;
       contentStr = JSON.stringify(database, null, 2);
+    }
+
+    // CRITICAL: Immediately update server's in-memory database, persist to disk, and broadcast to all live browsers!
+    if (parsedContent && typeof parsedContent === 'object' && Object.keys(parsedContent).length > 0) {
+      database = { ...database, ...parsedContent };
+      persistDatabase();
+      broadcastUpdate('SYNC_ALL');
     }
 
     const contentBase64 = Buffer.from(contentStr, 'utf-8').toString('base64');

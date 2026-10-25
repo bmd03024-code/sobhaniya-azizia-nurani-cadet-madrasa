@@ -69,6 +69,27 @@ export async function safeResponseJson<T = any>(res: Response, fallback: T = {} 
   }
 }
 
+// Helper to format GitHub Authorization header cleanly for classic and fine-grained tokens
+export function getGithubAuthHeader(rawToken?: string): string {
+  if (!rawToken) return '';
+  const token = rawToken
+    .replace(/^(Bearer|token)\s+/i, '')
+    .replace(/["']/g, '')
+    .trim();
+  if (!token) return '';
+  if (
+    token.startsWith('ghp_') ||
+    token.startsWith('gho_') ||
+    token.startsWith('ghu_') ||
+    token.startsWith('ghs_') ||
+    token.startsWith('ghr_') ||
+    /^[a-f0-9]{40}$/i.test(token)
+  ) {
+    return `token ${token}`;
+  }
+  return `Bearer ${token}`;
+}
+
 class GitHubDataService {
   private static instance: GitHubDataService;
   private channel: BroadcastChannel | null = null;
@@ -77,7 +98,6 @@ class GitHubDataService {
 
   private constructor() {
     this.setupBroadcastChannel();
-    this.setupFocusListener();
     this.hydrateServerConfig().catch(() => {});
   }
 
@@ -86,6 +106,21 @@ class GitHubDataService {
       GitHubDataService.instance = new GitHubDataService();
     }
     return GitHubDataService.instance;
+  }
+
+  private setupBroadcastChannel() {
+    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
+    try {
+      this.channel = new BroadcastChannel('bs_github_data_sync');
+      this.channel.onmessage = (event) => {
+        if (event.data?.type === 'GITHUB_SYNC_UPDATED') {
+          console.log('[GitHub Sync] Received cross-tab update from another tab');
+          window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromGitHub: true } }));
+        }
+      };
+    } catch (e) {
+      console.warn('[GitHub Sync] BroadcastChannel setup notice:', e);
+    }
   }
 
   /**
@@ -112,33 +147,6 @@ class GitHubDataService {
         }
       }
     } catch {}
-  }
-
-  private setupBroadcastChannel() {
-    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
-    try {
-      this.channel = new BroadcastChannel('bs_github_data_sync');
-      this.channel.onmessage = (event) => {
-        if (event.data?.type === 'GITHUB_SYNC_UPDATED') {
-          console.log('[GitHub Sync] Received cross-tab update from another tab');
-          window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromGitHub: true } }));
-        }
-      };
-    } catch (e) {
-      console.warn('[GitHub Sync] BroadcastChannel setup notice:', e);
-    }
-  }
-
-  private setupFocusListener() {
-    if (typeof window === 'undefined') return;
-    // When user switches back to this browser tab, check for fresh data from GitHub
-    window.addEventListener('focus', () => {
-      const lastSync = Number(localStorage.getItem(STORAGE_KEYS.LAST_SYNC) || 0);
-      // If last sync was more than 30 seconds ago, pull fresh data
-      if (Date.now() - lastSync > 30000) {
-        this.pullLatestData().catch(() => {});
-      }
-    });
   }
 
   /**
@@ -245,6 +253,11 @@ class GitHubDataService {
               canPush: Boolean(finalToken),
               message: `কানেক্টেড! রিপোজিটরি: ${srvData.fullName} (ডিফল্ট ব্রাঞ্চ: ${srvData.defaultBranch})`
             };
+          } else if (srvData.error) {
+            return {
+              connected: false,
+              message: srvData.error
+            };
           }
         }
       } catch {
@@ -255,8 +268,9 @@ class GitHubDataService {
       const headers: Record<string, string> = {
         'Accept': 'application/vnd.github.v3+json'
       };
-      if (finalToken) {
-        headers['Authorization'] = `Bearer ${finalToken}`;
+      const auth = getGithubAuthHeader(finalToken);
+      if (auth) {
+        headers['Authorization'] = auth;
       }
 
       const res = await fetch(`https://api.github.com/repos/${finalRepo}`, { headers });
@@ -272,9 +286,17 @@ class GitHubDataService {
         };
       } else {
         const err = await safeResponseJson<any>(res, {});
+        let msg = err.message || `GitHub HTTP Error ${res.status}`;
+        if (res.status === 401) {
+          msg = 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।';
+        } else if (res.status === 404) {
+          msg = `রিপোজিটরি '${finalRepo}' পাওয়া যায়নি অথবা এই টোকেনে অ্যাক্সেস নেই।`;
+        } else if (res.status === 403) {
+          msg = 'GitHub API রেট লিমিট শেষ হয়েছে অথবা পারমিশন সীমাবদ্ধ।';
+        }
         return {
           connected: false,
-          message: err.message || `GitHub HTTP Error ${res.status}: টোকেন বা রিপোজিটরি নাম পরীক্ষা করুন`
+          message: msg
         };
       }
     } catch (e: any) {
@@ -286,36 +308,57 @@ class GitHubDataService {
   }
 
   /**
-   * Pull latest database from GitHub raw content or local static file
-   * (Ensures multi-browser synchronization)
+   * Pull latest database from server or GitHub live REST API
+   * (Ensures multi-browser synchronization without destroying uncommitted local edits)
    */
   public async pullLatestData(): Promise<{ success: boolean; data?: Record<string, any>; source?: string }> {
     const cfg = this.getConfig();
     let data: Record<string, any> | null = null;
     let source = '';
-
     const timestamp = Date.now();
 
-    // 1. Attempt GitHub Raw Content API (Direct Single Source of Truth)
-    if (cfg.repo && cfg.branch) {
-      const rawUrl = `https://raw.githubusercontent.com/${cfg.repo}/${cfg.branch}/${cfg.dataPath}?t=${timestamp}`;
+    // 1. Try server REST API first (fastest and always authoritative)
+    try {
+      const srvRes = await fetch(`/api/sync/all?t=${timestamp}`, { cache: 'no-store' });
+      if (srvRes.ok) {
+        const json = await safeResponseJson<any>(srvRes, null);
+        if (json && json.data && typeof json.data === 'object' && Object.keys(json.data).length > 0) {
+          data = json.data;
+          source = 'Express Server (/api/sync/all)';
+        }
+      }
+    } catch {}
+
+    // 2. If server not available, attempt GitHub REST API with Token (live zero-cache)
+    if (!data && cfg.token && cfg.repo && cfg.branch) {
       try {
-        const res = await fetch(rawUrl, { cache: 'no-store' });
+        const auth = getGithubAuthHeader(cfg.token);
+        const res = await fetch(`https://api.github.com/repos/${cfg.repo}/contents/${cfg.dataPath}?ref=${cfg.branch}&t=${timestamp}`, {
+          headers: {
+            'Accept': 'application/vnd.github.v3+json',
+            'Authorization': auth
+          },
+          cache: 'no-store'
+        });
         if (res.ok) {
-          const parsed = await safeResponseJson<any>(res, null);
-          if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-            data = parsed;
-            source = `GitHub Raw (${cfg.repo}@${cfg.branch})`;
+          const fileData = await safeResponseJson<any>(res, null);
+          if (fileData?.content) {
+            const rawDecoded = decodeURIComponent(escape(atob(fileData.content.replace(/\s/g, ''))));
+            const parsed = JSON.parse(rawDecoded);
+            if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+              data = parsed;
+              source = `GitHub Live REST API (${cfg.repo}@${cfg.branch})`;
+            }
           }
         }
       } catch (e) {
-        console.warn('[GitHub Sync] Raw fetch notice:', e);
+        console.warn('[GitHub Sync] Live REST fetch notice:', e);
       }
     }
 
-    // 2. Fallback to server REST API / static paths (Vercel public file)
+    // 3. Fallback to public static files or raw GitHub
     if (!data) {
-      const candidatePaths = ['/api/sync/all', '/institute_db.json', '/data/institute_db.json'];
+      const candidatePaths = ['/institute_db.json', '/data/institute_db.json'];
       for (const p of candidatePaths) {
         try {
           const res = await fetch(`${p}?t=${timestamp}`, { cache: 'no-store' });
@@ -359,14 +402,14 @@ class GitHubDataService {
   }
 
   /**
-   * Helper to encode UTF-8 string to Base64 in browser and node environments
+   * Helper to encode UTF-8 string to Base64 safely in all browsers & node
    */
   private toBase64(str: string): string {
     try {
-      // Modern browser safe UTF-8 base64
       const bytes = new TextEncoder().encode(str);
       let binary = '';
-      for (let i = 0; i < bytes.byteLength; i++) {
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
         binary += String.fromCharCode(bytes[i]);
       }
       return btoa(binary);
@@ -447,6 +490,7 @@ class GitHubDataService {
 
     try {
       const contentBase64 = this.toBase64(jsonString);
+      const auth = getGithubAuthHeader(token);
 
       // Files to update in repository: primary data file and public fallback
       const filesToUpdate = [cfg.dataPath, 'public/institute_db.json'];
@@ -457,15 +501,22 @@ class GitHubDataService {
         // Step A: Get current file SHA if exists
         let currentSha: string | undefined;
         try {
-          const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${branch}`, {
+          const checkRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}?ref=${encodeURIComponent(branch)}&t=${Date.now()}`, {
             headers: {
-              'Authorization': `Bearer ${token}`,
+              'Authorization': auth,
               'Accept': 'application/vnd.github.v3+json'
-            }
+            },
+            cache: 'no-store'
           });
           if (checkRes.ok) {
             const fileInfo = await safeResponseJson<any>(checkRes, {});
             currentSha = fileInfo.sha;
+          } else if (checkRes.status === 401) {
+            return {
+              success: false,
+              message: 'GitHub Token টি সঠিক নয় অথবা এর মেয়াদ শেষ হয়ে গেছে (Bad Credentials)।',
+              error: 'Bad credentials'
+            };
           }
         } catch {}
 
@@ -482,7 +533,7 @@ class GitHubDataService {
         const putRes = await fetch(`https://api.github.com/repos/${repo}/contents/${filePath}`, {
           method: 'PUT',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            'Authorization': auth,
             'Accept': 'application/vnd.github.v3+json',
             'Content-Type': 'application/json'
           },

@@ -283,28 +283,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
 
   // Master Save Function
   const handleSaveAll = () => {
-    storage.saveSettings(settings);
-    storage.saveClasses(classes);
-    storage.saveSubjects(subjects);
-    storage.saveTeachers(teachers);
-    storage.saveStudents(students);
-    storage.saveApplications(applications);
-    storage.saveResults(results);
-    storage.saveClassRoutines(classRoutines);
-    storage.saveExamRoutines(examRoutines);
-    storage.saveUploadedRoutines(uploadedRoutines);
-    storage.saveLedger(ledger);
-    storage.saveNotices(notices);
-    storage.saveGallery(gallery);
-    storage.saveCertificates(certificates);
-    storage.saveAdminCredentials(creds);
-    storage.saveFeeBills(feeBills);
+    const fullDb: Record<string, any> = {
+      settings,
+      slides: storage.getSlides(),
+      shortcuts: storage.getShortcuts(),
+      classes,
+      subjects,
+      exam_types: storage.getExamTypes(),
+      teachers,
+      students,
+      applications,
+      results,
+      class_routines: classRoutines,
+      exam_routines: examRoutines,
+      uploaded_routines: uploadedRoutines,
+      ledger,
+      notices,
+      gallery,
+      certificates,
+      admin_creds: creds,
+      fee_bills: feeBills
+    };
 
-    triggerNotification('✓ সকল তথ্য ব্রাউজার ও লাইভ ডাটাবেজে সংরক্ষিত হয়েছে!');
+    storage.saveAll(fullDb);
+    triggerNotification('✓ সকল তথ্য ব্রাউজার ও লাইভ ডাটাবেজে সফলভাবে সংরক্ষিত হয়েছে!');
 
     // Trigger instant commit to GitHub if configured
     try {
-      const fullDb = storage.getFullDatabase();
       const cfg = githubDataService.getConfig();
       if (cfg.token) {
         githubDataService.commitAndPush(fullDb, `Admin Manual Save: ${new Date().toLocaleTimeString('bn-BD')}`)
