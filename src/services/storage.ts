@@ -613,12 +613,19 @@ class MadrasahStorageService {
       if (data && typeof data === 'object') {
         let anyKeyUpdated = false;
         for (const key of Object.keys(data)) {
-          // If local key is empty, populate from server
+          // GitHub/static JSON is the shared source of truth. Refresh cached values
+          // even when this browser already has an older copy, otherwise stale
+          // localStorage prevents published admin changes reaching returning visitors.
+          const remoteValue = JSON.stringify(data[key]);
           const currentLocal = localStorage.getItem(`bs_${key}`);
-          if (!currentLocal) {
+          if (currentLocal !== remoteValue) {
             this.setLocalSilently(key, data[key]);
             anyKeyUpdated = true;
           }
+          // The value has now been reconciled with the published source.
+          try {
+            localStorage.removeItem(`bs_authoritative_${key}`);
+          } catch {}
         }
         if (version) this.currentDbVersion = version;
         if (anyKeyUpdated) {
