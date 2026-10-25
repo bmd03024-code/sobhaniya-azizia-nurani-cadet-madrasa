@@ -8,7 +8,7 @@ import { GoogleGenAI } from '@google/genai';
 
 const app = express();
 // Default to 3000 for AI Studio environment and iframe preview
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 const server = http.createServer(app);
 
 // Initialize Socket.io Server attached to same HTTP server (No extra ports needed!)
@@ -388,15 +388,15 @@ interface ServerAISettings {
 
 const AI_SETTINGS_FILE = path.join(DATA_DIR, 'ai_settings.json');
 
-// Default initial AI settings (reads env vars if present, but never hardcodes keys)
+// Default initial AI settings (strictly unconfigured until Admin sets keys from Admin Panel)
 let serverAISettings: ServerAISettings = {
-  activeProvider: (process.env.DEFAULT_AI_PROVIDER as any) || 'gemini',
-  geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
-  groqApiKey: process.env.GROQ_API_KEY || '',
-  groqModel: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
-  openrouterApiKey: process.env.OPENROUTER_API_KEY || '',
-  openrouterModel: process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.2-3b-instruct:free',
+  activeProvider: 'local_only',
+  geminiApiKey: '',
+  geminiModel: 'gemini-3.8-flash',
+  groqApiKey: '',
+  groqModel: 'llama-3.3-70b-versatile',
+  openrouterApiKey: '',
+  openrouterModel: 'meta-llama/llama-3.2-3b-instruct:free',
   fallbackToLocal: true
 };
 
@@ -533,9 +533,9 @@ app.get('/api/ai/settings', (_req: Request, res: Response) => {
     geminiModel: serverAISettings.geminiModel,
     groqModel: serverAISettings.groqModel,
     openrouterModel: serverAISettings.openrouterModel,
-    hasGeminiKey: Boolean(serverAISettings.geminiApiKey || process.env.GEMINI_API_KEY),
-    hasGroqKey: Boolean(serverAISettings.groqApiKey || process.env.GROQ_API_KEY),
-    hasOpenrouterKey: Boolean(serverAISettings.openrouterApiKey || process.env.OPENROUTER_API_KEY),
+    hasGeminiKey: Boolean(serverAISettings.geminiApiKey),
+    hasGroqKey: Boolean(serverAISettings.groqApiKey),
+    hasOpenrouterKey: Boolean(serverAISettings.openrouterApiKey),
     // Masked keys for display in admin inputs
     geminiApiKeyMasked: serverAISettings.geminiApiKey ? `${serverAISettings.geminiApiKey.slice(0, 4)}...${serverAISettings.geminiApiKey.slice(-4)}` : '',
     groqApiKeyMasked: serverAISettings.groqApiKey ? `${serverAISettings.groqApiKey.slice(0, 4)}...${serverAISettings.groqApiKey.slice(-4)}` : '',
@@ -573,6 +573,19 @@ app.post('/api/ai/settings', (req: Request, res: Response) => {
     success: true,
     message: 'AI Provider Settings saved successfully',
     activeProvider: serverAISettings.activeProvider
+  });
+});
+
+// POST /api/ai/clear - Admin completely clears all AI API keys
+app.post('/api/ai/clear', (_req: Request, res: Response) => {
+  serverAISettings.geminiApiKey = '';
+  serverAISettings.groqApiKey = '';
+  serverAISettings.openrouterApiKey = '';
+  serverAISettings.activeProvider = 'local_only';
+  persistAISettings();
+  res.json({
+    success: true,
+    message: 'সকল এআই এপিআই কি সফলভাবে ক্লিয়ার ও মুছে ফেলা হয়েছে।'
   });
 });
 
@@ -1031,6 +1044,18 @@ app.post('/api/github/save-config', (req: Request, res: Response) => {
   res.json({
     success: true,
     message: 'GitHub Personal Access Token সফলভাবে স্থায়ীভাবে সংরক্ষিত হয়েছে।'
+  });
+});
+
+// POST /api/github/clear - Clear GitHub Personal Access Token
+app.post('/api/github/clear', (_req: Request, res: Response) => {
+  savedGithubConfig.token = '';
+  try {
+    fs.writeFileSync(GITHUB_CONFIG_FILE, JSON.stringify(savedGithubConfig, null, 2), 'utf-8');
+  } catch {}
+  res.json({
+    success: true,
+    message: 'GitHub Personal Access Token সফলভাবে মুছে ফেলা হয়েছে।'
   });
 });
 

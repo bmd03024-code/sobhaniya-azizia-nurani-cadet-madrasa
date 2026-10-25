@@ -60,6 +60,7 @@ import {
   Video,
   Play,
   Eye,
+  EyeOff,
   Receipt,
   CreditCard,
   Camera
@@ -247,10 +248,200 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
   const [newGalleryType, setNewGalleryType] = useState<'image' | 'video' | 'embed'>('image');
   const [newGalleryUrl, setNewGalleryUrl] = useState('');
 
+  // AI & API Control States (Only Admin Configurable)
+  const [aiSettings, setAiSettings] = useState({
+    activeProvider: 'local_only',
+    geminiApiKey: '',
+    geminiModel: 'gemini-3.8-flash',
+    groqApiKey: '',
+    groqModel: 'llama-3.3-70b-versatile',
+    openrouterApiKey: '',
+    openrouterModel: 'meta-llama/llama-3.2-3b-instruct:free',
+    fallbackToLocal: true,
+    hasGeminiKey: false,
+    hasGroqKey: false,
+    hasOpenrouterKey: false,
+    geminiApiKeyMasked: '',
+    groqApiKeyMasked: '',
+    openrouterApiKeyMasked: ''
+  });
+  const [showGeminiKey, setShowGeminiKey] = useState(false);
+  const [showGroqKey, setShowGroqKey] = useState(false);
+  const [showOpenrouterKey, setShowOpenrouterKey] = useState(false);
+  const [showGithubToken, setShowGithubToken] = useState(false);
+  const [githubToken, setGithubToken] = useState('');
+  const [githubRepo, setGithubRepo] = useState('bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa');
+  const [githubBranch, setGithubBranch] = useState('main');
+  const [testingAiProvider, setTestingAiProvider] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{ provider: string; success: boolean; message: string; latencyMs?: number } | null>(null);
+  const [savingAiSettings, setSavingAiSettings] = useState(false);
+
   // Trigger brief alert toast
   const triggerNotification = (msg: string) => {
     setNotification(msg);
     setTimeout(() => setNotification(null), 3500);
+  };
+
+  // Load AI and GitHub API configuration from server
+  const loadAiAndApiSettings = async () => {
+    try {
+      const res = await fetch('/api/ai/settings');
+      if (res.ok) {
+        const data = await res.json();
+        setAiSettings(prev => ({
+          ...prev,
+          activeProvider: data.activeProvider || 'local_only',
+          geminiModel: data.geminiModel || 'gemini-3.8-flash',
+          groqModel: data.groqModel || 'llama-3.3-70b-versatile',
+          openrouterModel: data.openrouterModel || 'meta-llama/llama-3.2-3b-instruct:free',
+          hasGeminiKey: Boolean(data.hasGeminiKey),
+          hasGroqKey: Boolean(data.hasGroqKey),
+          hasOpenrouterKey: Boolean(data.hasOpenrouterKey),
+          geminiApiKeyMasked: data.geminiApiKeyMasked || '',
+          groqApiKeyMasked: data.groqApiKeyMasked || '',
+          openrouterApiKeyMasked: data.openrouterApiKeyMasked || '',
+          fallbackToLocal: data.fallbackToLocal !== false
+        }));
+      }
+    } catch {}
+
+    try {
+      const ghRes = await fetch('/api/github/config');
+      if (ghRes.ok) {
+        const ghData = await ghRes.json();
+        if (ghData.token) setGithubToken(ghData.token);
+        if (ghData.repo) setGithubRepo(ghData.repo);
+        if (ghData.branch) setGithubBranch(ghData.branch);
+      }
+    } catch {}
+  };
+
+  const handleSaveAiApiSettings = async () => {
+    setSavingAiSettings(true);
+    setTestResult(null);
+    try {
+      const payload: any = {
+        activeProvider: aiSettings.activeProvider,
+        geminiModel: aiSettings.geminiModel,
+        groqModel: aiSettings.groqModel,
+        openrouterModel: aiSettings.openrouterModel,
+        fallbackToLocal: aiSettings.fallbackToLocal
+      };
+      if (aiSettings.geminiApiKey !== undefined) payload.geminiApiKey = aiSettings.geminiApiKey;
+      if (aiSettings.groqApiKey !== undefined) payload.groqApiKey = aiSettings.groqApiKey;
+      if (aiSettings.openrouterApiKey !== undefined) payload.openrouterApiKey = aiSettings.openrouterApiKey;
+
+      const aiRes = await fetch('/api/ai/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (githubToken !== undefined) {
+        await fetch('/api/github/save-config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: githubToken, repo: githubRepo, branch: githubBranch })
+        });
+        githubDataService.saveConfig({ token: githubToken, repo: githubRepo, branch: githubBranch });
+      }
+
+      if (aiRes.ok) {
+        triggerNotification('✓ এআই ও এপিআই কি সেটিংস সফলভাবে সংরক্ষিত হয়েছে!');
+        loadAiAndApiSettings();
+      } else {
+        triggerNotification('⚠️ সেটিংস সংরক্ষণে সমস্যা হয়েছে।');
+      }
+    } catch (e: any) {
+      triggerNotification(`ত্রুটি: ${e?.message || 'সার্ভার পাওয়া যায়নি'}`);
+    } finally {
+      setSavingAiSettings(false);
+    }
+  };
+
+  const handleClearAllApiKeys = async () => {
+    if (!confirm('আপনি কি নিশ্চিত যে আপনি সকল এআই এপিআই কি এবং গিটহাব টোকেন মুছে ফেলতে চান? এটি মুছে ফেললে সিস্টেম স্বয়ংক্রিয়ভাবে লোকাল মোডে কাজ করবে।')) {
+      return;
+    }
+
+    try {
+      await fetch('/api/ai/clear', { method: 'POST' });
+      await fetch('/api/github/clear', { method: 'POST' });
+      githubDataService.saveConfig({ token: '' });
+      localStorage.removeItem('bs_github_token');
+      
+      setAiSettings(prev => ({
+        ...prev,
+        geminiApiKey: '',
+        groqApiKey: '',
+        openrouterApiKey: '',
+        activeProvider: 'local_only',
+        hasGeminiKey: false,
+        hasGroqKey: false,
+        hasOpenrouterKey: false,
+        geminiApiKeyMasked: '',
+        groqApiKeyMasked: '',
+        openrouterApiKeyMasked: ''
+      }));
+      setGithubToken('');
+      setTestResult({
+        provider: 'clear',
+        success: true,
+        message: 'সকল এপিআই কি এবং সিক্রেট কোড ও মেমোরি থেকে সম্পূর্ণভাবে ক্লিয়ার / মুছে ফেলা হয়েছে!'
+      });
+      triggerNotification('✓ সকল এপিআই কি সফলভাবে ক্লিয়ার করা হয়েছে!');
+    } catch (e: any) {
+      triggerNotification(`ক্লিয়ার করতে ব্যর্থ: ${e?.message || 'ত্রুটি'}`);
+    }
+  };
+
+  const handleTestAiProvider = async (provider: 'gemini' | 'groq' | 'openrouter' | 'local_only') => {
+    setTestingAiProvider(provider);
+    setTestResult(null);
+
+    let keyToTest = '';
+    let modelToTest = '';
+    if (provider === 'gemini') {
+      keyToTest = aiSettings.geminiApiKey;
+      modelToTest = aiSettings.geminiModel;
+    } else if (provider === 'groq') {
+      keyToTest = aiSettings.groqApiKey;
+      modelToTest = aiSettings.groqModel;
+    } else if (provider === 'openrouter') {
+      keyToTest = aiSettings.openrouterApiKey;
+      modelToTest = aiSettings.openrouterModel;
+    }
+
+    try {
+      const res = await fetch('/api/ai/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, apiKey: keyToTest, model: modelToTest })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestResult({
+          provider,
+          success: true,
+          message: data.text || 'কানেকশন টেস্ট সফল হয়েছে!',
+          latencyMs: data.latencyMs
+        });
+      } else {
+        setTestResult({
+          provider,
+          success: false,
+          message: data.error || 'কানেকশন ব্যর্থ হয়েছে। এপিআই কি চেক করুন।'
+        });
+      }
+    } catch (e: any) {
+      setTestResult({
+        provider,
+        success: false,
+        message: e?.message || 'নেটওয়ার্ক এরর। টেস্ট করা সম্ভব হয়নি।'
+      });
+    } finally {
+      setTestingAiProvider(null);
+    }
   };
 
   // Real-Time Synchronizer for Admin Dashboard (Respects Admin Authority)
@@ -298,6 +489,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
       }
     };
 
+    loadAiAndApiSettings();
     window.addEventListener('bs_sync', handleSync);
     return () => window.removeEventListener('bs_sync', handleSync);
   }, []);
@@ -887,6 +1079,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
               { id: 'ledger', label: '💰 আয় ও ব্যয় ক্যাশবুক', icon: DollarSign },
               { id: 'notices', label: '📢 নোটিশ ও ফটো গ্যালারি', icon: Bell },
               { id: 'security', label: '🔐 সিকিউরিটি ও মাস্টার পিন', icon: KeyRound },
+              { id: 'ai_api', label: '🤖 এআই ও এপিআই কি সেটিংস', icon: Sparkles },
             ].map(tab => (
               <button
                 key={tab.id}
@@ -3693,6 +3886,417 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                   >
                     <Save className="w-4 h-4 text-amber-300" />
                     <span>ক্রেডেনশিয়াল আপডেট করুন</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 13: AI & API KEYS MANAGEMENT (Only Admin Configurable) */}
+          {activeTab === 'ai_api' && (
+            <div className="space-y-6 max-w-4xl">
+              {/* Top Security Banner */}
+              <div className="p-6 rounded-3xl bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white shadow-md border border-emerald-500/30 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-black shadow-md">
+                      <Sparkles className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black text-white">এআই ও এপিআই কি সেন্ট্রাল কন্ট্রোল (AI & API Keys)</h3>
+                      <p className="text-xs text-emerald-200">
+                        একমাত্র অ্যাডমিন প্যানেল থেকেই এপিআই কি প্রদান ও পরিচালনা করা যায়।
+                      </p>
+                    </div>
+                  </div>
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-[11px] font-bold text-emerald-300">
+                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                    <span>১০০% কোড-ক্লিয়ারড ও নিরাপদ</span>
+                  </div>
+                </div>
+
+                <div className="bg-white/10 rounded-2xl p-3.5 text-xs text-slate-200 leading-relaxed border border-white/10">
+                  <p>
+                    🔒 <strong>নিরাপত্তা গ্যারান্টি:</strong> আপনার প্রজেক্টের সোর্স কোডে কোনো এপিআই কি (API Key) বা হার্ডকোডেড সিক্রেট রাখা হয়নি। কেবলমাত্র অ্যাডমিন প্যানেলের এই সুরক্ষিত সেকশনে আপনি যে কি বসাবেন, তা সার্ভার-সাইড প্রক্সিতে নিরাপদভাবে কাজ করবে। সাধারণ ইউজার বা পাবলিক ব্রাউজারে কখনো আপনার এপিআই কি দৃশ্যমান হবে না।
+                  </p>
+                </div>
+              </div>
+
+              {/* Test Result Notice */}
+              {testResult && (
+                <div className={`p-4 rounded-2xl border text-xs font-medium flex items-start gap-3 animate-in fade-in duration-200 ${
+                  testResult.success
+                    ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
+                    : 'bg-rose-50 border-rose-200 text-rose-900'
+                }`}>
+                  {testResult.success ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  ) : (
+                    <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                  )}
+                  <div className="grow space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold uppercase tracking-wider text-[11px]">
+                        {testResult.provider === 'clear' ? 'ক্লিয়ার নোটিস' : `${testResult.provider} টেস্ট ফলাফল`}
+                      </span>
+                      {testResult.latencyMs !== undefined && (
+                        <span className="font-mono text-[11px] bg-emerald-200/60 px-2 py-0.5 rounded text-emerald-950 font-bold">
+                          রেসপন্স টাইম: {testResult.latencyMs} ms
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs leading-relaxed">{testResult.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setTestResult(null)}
+                    className="text-slate-400 hover:text-slate-600 p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              )}
+
+              {/* AI Provider Mode Selector */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">সক্রিয় এআই ইঞ্জিন নির্বাচন (Active AI Engine)</h4>
+                    <p className="text-xs text-slate-500">চ্যাটবট এবং ডকুমেন্ট ওসিআর এর জন্য মূল ইঞ্জিন নির্বাচন করুন</p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-100 text-emerald-800 uppercase">
+                    বর্তমান মোড: {aiSettings.activeProvider}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {[
+                    {
+                      id: 'local_only',
+                      name: '১. লোকাল নলেজবেস',
+                      badge: 'জিরো এপিআই খরচ',
+                      desc: 'কোনো এপিআই কি প্রয়োজন নেই। ৫ লক্ষ শব্দ ও শিক্ষক ভেরিফায়েড ডাটাবেজ থেকে উত্তর দেবে।'
+                    },
+                    {
+                      id: 'gemini',
+                      name: '২. Google Gemini AI',
+                      badge: 'সুপার ইন্টেলিজেন্ট',
+                      desc: 'অফিশিয়াল গুগল জেমিনি এআই ইঞ্জিন। বাংলা ভাষা ও মাল্টিমোডাল ডকুমেন্ট রিডিংয়ে সেরা।'
+                    },
+                    {
+                      id: 'groq',
+                      name: '৩. Groq Cloud LPU',
+                      badge: 'আল্ট্রা-ফাস্ট',
+                      desc: 'উচ্চগতির LLaMA 3.3 ইনফারেন্স ইঞ্জিন। চোখের পলকে উত্তর প্রদানের জন্য আদর্শ।'
+                    },
+                    {
+                      id: 'openrouter',
+                      name: '৪. OpenRouter AI',
+                      badge: 'ইউনিভার্সাল হাব',
+                      desc: 'ওপেনরাউটার গেটওয়ে। ফ্রি ও পেইড শত শত মডেলের সমন্বয়ে চ্যাট পরিচালনা।'
+                    }
+                  ].map(p => (
+                    <div
+                      key={p.id}
+                      onClick={() => setAiSettings({ ...aiSettings, activeProvider: p.id as any })}
+                      className={`p-4 rounded-2xl border-2 transition-all cursor-pointer space-y-2 ${
+                        aiSettings.activeProvider === p.id
+                          ? 'border-emerald-600 bg-emerald-50/60 shadow-xs'
+                          : 'border-slate-200 hover:border-slate-300 bg-slate-50/50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-slate-900">{p.name}</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white text-slate-700 border border-slate-200">
+                          {p.badge}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-600 leading-relaxed">{p.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 1. Google Gemini Configuration */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-blue-600"></span>
+                    <h4 className="text-sm font-bold text-slate-900">Google Gemini API Key কনফিগারেশন</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      aiSettings.hasGeminiKey || aiSettings.geminiApiKey
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {aiSettings.hasGeminiKey || aiSettings.geminiApiKey ? '✓ কি কনফিগার করা আছে' : 'ফাঁকা / ক্লিয়ার'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={testingAiProvider === 'gemini'}
+                      onClick={() => handleTestAiProvider('gemini')}
+                      className="px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 hover:bg-blue-100 border border-blue-200 text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {testingAiProvider === 'gemini' ? 'টেস্টিং...' : 'কানেকশন টেস্ট'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Gemini API Key {aiSettings.geminiApiKeyMasked && !aiSettings.geminiApiKey && `(সংরক্ষিত: ${aiSettings.geminiApiKeyMasked})`}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showGeminiKey ? 'text' : 'password'}
+                        placeholder="আপনার Gemini API Key এখানে পেস্ট করুন (যেমন: AIzaSy...)"
+                        value={aiSettings.geminiApiKey}
+                        onChange={(e) => setAiSettings({ ...aiSettings, geminiApiKey: e.target.value })}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-blue-600 focus:outline-hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGeminiKey(!showGeminiKey)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        {showGeminiKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      💡 আপনি <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" className="text-blue-600 underline font-semibold">Google AI Studio</a> থেকে সম্পূর্ণ বিনামূল্যে Gemini API Key পেতে পারেন।
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">জেমিনি মডেল নাম</label>
+                    <input
+                      type="text"
+                      value={aiSettings.geminiModel}
+                      onChange={(e) => setAiSettings({ ...aiSettings, geminiModel: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800"
+                    />
+                    <span className="text-[11px] text-slate-500">ডিফল্ট: gemini-3.8-flash</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Groq Cloud Configuration */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-amber-500"></span>
+                    <h4 className="text-sm font-bold text-slate-900">Groq Cloud API Key কনফিগারেশন</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      aiSettings.hasGroqKey || aiSettings.groqApiKey
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {aiSettings.hasGroqKey || aiSettings.groqApiKey ? '✓ কি কনফিগার করা আছে' : 'ফাঁকা / ক্লিয়ার'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={testingAiProvider === 'groq'}
+                      onClick={() => handleTestAiProvider('groq')}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 hover:bg-amber-100 border border-amber-200 text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {testingAiProvider === 'groq' ? 'টেস্টিং...' : 'কানেকশন টেস্ট'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      Groq API Key {aiSettings.groqApiKeyMasked && !aiSettings.groqApiKey && `(সংরক্ষিত: ${aiSettings.groqApiKeyMasked})`}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showGroqKey ? 'text' : 'password'}
+                        placeholder="আপনার Groq API Key এখানে দিন (যেমন: gsk_...)"
+                        value={aiSettings.groqApiKey}
+                        onChange={(e) => setAiSettings({ ...aiSettings, groqApiKey: e.target.value })}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-amber-600 focus:outline-hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGroqKey(!showGroqKey)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        {showGroqKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      💡 আপনি <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="text-amber-700 underline font-semibold">Groq Console</a> থেকে ফ্রি কি তৈরি করতে পারেন।
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">Groq মডেল নাম</label>
+                    <input
+                      type="text"
+                      value={aiSettings.groqModel}
+                      onChange={(e) => setAiSettings({ ...aiSettings, groqModel: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800"
+                    />
+                    <span className="text-[11px] text-slate-500">ডিফল্ট: llama-3.3-70b-versatile</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 3. OpenRouter Configuration */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-purple-600"></span>
+                    <h4 className="text-sm font-bold text-slate-900">OpenRouter API Key কনফিগারেশন</h4>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      aiSettings.hasOpenrouterKey || aiSettings.openrouterApiKey
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-slate-100 text-slate-500'
+                    }`}>
+                      {aiSettings.hasOpenrouterKey || aiSettings.openrouterApiKey ? '✓ কি কনফিগার করা আছে' : 'ফাঁকা / ক্লিয়ার'}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={testingAiProvider === 'openrouter'}
+                      onClick={() => handleTestAiProvider('openrouter')}
+                      className="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-800 hover:bg-purple-100 border border-purple-200 text-xs font-bold transition-colors disabled:opacity-50"
+                    >
+                      {testingAiProvider === 'openrouter' ? 'টেস্টিং...' : 'কানেকশন টেস্ট'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">
+                      OpenRouter API Key {aiSettings.openrouterApiKeyMasked && !aiSettings.openrouterApiKey && `(সংরক্ষিত: ${aiSettings.openrouterApiKeyMasked})`}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showOpenrouterKey ? 'text' : 'password'}
+                        placeholder="আপনার OpenRouter API Key (যেমন: sk-or-...)"
+                        value={aiSettings.openrouterApiKey}
+                        onChange={(e) => setAiSettings({ ...aiSettings, openrouterApiKey: e.target.value })}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-purple-600 focus:outline-hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowOpenrouterKey(!showOpenrouterKey)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        {showOpenrouterKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                    <span className="text-[11px] text-slate-500">
+                      💡 <a href="https://openrouter.ai" target="_blank" rel="noreferrer" className="text-purple-700 underline font-semibold">openrouter.ai</a> থেকে কি তৈরি করতে পারেন।
+                    </span>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">OpenRouter মডেল নাম</label>
+                    <input
+                      type="text"
+                      value={aiSettings.openrouterModel}
+                      onChange={(e) => setAiSettings({ ...aiSettings, openrouterModel: e.target.value })}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800"
+                    />
+                    <span className="text-[11px] text-slate-500">ডিফল্ট: meta-llama/llama-3.2-3b-instruct:free</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 4. GitHub Personal Access Token (PAT) Configuration */}
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="w-3 h-3 rounded-full bg-slate-800"></span>
+                    <h4 className="text-sm font-bold text-slate-900">GitHub Personal Access Token (ডাটাবেজ অটো-পুশ)</h4>
+                  </div>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    githubToken ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {githubToken ? '✓ টোকেন কনফিগার করা আছে' : 'ফাঁকা / ক্লিয়ার'}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-3 space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">GitHub Token (Classic বা Fine-grained)</label>
+                    <div className="relative">
+                      <input
+                        type={showGithubToken ? 'text' : 'password'}
+                        placeholder="আপনার GitHub Token (যেমন: ghp_... অথবা github_pat_...)"
+                        value={githubToken}
+                        onChange={(e) => setGithubToken(e.target.value)}
+                        className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-slate-800 focus:outline-hidden"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowGithubToken(!showGithubToken)}
+                        className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600"
+                      >
+                        {showGithubToken ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">রিপোজিটরি (Repository)</label>
+                    <input
+                      type="text"
+                      value={githubRepo}
+                      onChange={(e) => setGithubRepo(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-xs font-bold text-slate-700">শাখা (Branch)</label>
+                    <input
+                      type="text"
+                      value={githubBranch}
+                      onChange={(e) => setGithubBranch(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs font-mono font-bold text-slate-800"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Master Actions Buttons */}
+              <div className="p-6 bg-slate-100 rounded-3xl border border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <button
+                  type="button"
+                  onClick={handleClearAllApiKeys}
+                  className="w-full sm:w-auto px-5 py-3 rounded-2xl bg-white hover:bg-rose-50 border border-rose-300 text-rose-700 font-bold text-xs flex items-center justify-center gap-2 transition-colors shadow-xs"
+                >
+                  <Trash2 className="w-4 h-4 text-rose-600" />
+                  <span>সকল এপিআই কি ও সিক্রেট মুছে ফেলুন (Clear All)</span>
+                </button>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={loadAiAndApiSettings}
+                    className="px-4 py-3 rounded-2xl bg-white hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span>রিফ্রেশ</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={savingAiSettings}
+                    onClick={handleSaveAiApiSettings}
+                    className="grow sm:grow-0 px-7 py-3 rounded-2xl bg-gradient-to-r from-emerald-800 to-teal-800 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 disabled:opacity-50"
+                  >
+                    <Save className="w-4 h-4 text-amber-300" />
+                    <span>{savingAiSettings ? 'সংরক্ষণ হচ্ছে...' : 'এপিআই কি ও সেটিংস সংরক্ষণ করুন'}</span>
                   </button>
                 </div>
               </div>
