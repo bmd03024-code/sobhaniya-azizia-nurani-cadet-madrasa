@@ -40,7 +40,7 @@
     "footerNotice": "ভর্তি, পরীক্ষা ও যাবতীয় সনদ সরাসরি প্রধান শিক্ষক কর্তৃক অনুমোদিত।",
     "githubRepo": "bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa",
     "githubBranch": "main",
-    "githubAutoPushEnabled": true
+    "githubAutoPushEnabled": false
   },
   "slides": [
     {
@@ -292,7 +292,7 @@
         "মাসআলা ও সালাত",
         "বাংলা সাহিত্য"
       ],
-      "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
+      "photoUrl": "",
       "bloodGroup": "A+",
       "joiningDate": "2019-02-15",
       "bio": "শিক্ষার্থীদের নৈতিক চরিত্র গঠন ও আরবি ভাষার বুৎপত্তি অর্জনে বিশেষ ভূমিকা রাখছেন।"
