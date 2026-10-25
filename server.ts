@@ -4,12 +4,19 @@ import { Server as SocketIOServer } from 'socket.io';
 import { createServer as createViteServer } from 'vite';
 import fs from 'fs';
 import path from 'path';
+import os from 'os';
 import { GoogleGenAI } from '@google/genai';
 
 const app = express();
 // Default to 3000 for AI Studio environment and iframe preview
 const port = Number(process.env.PORT) || 3000;
 const server = http.createServer(app);
+
+// Secure runtime directory outside the git repository for sensitive configs (API keys & GitHub tokens)
+const SECURE_RUNTIME_DIR = path.join(os.tmpdir(), 'bs_madrasah_runtime');
+if (!fs.existsSync(SECURE_RUNTIME_DIR)) {
+  fs.mkdirSync(SECURE_RUNTIME_DIR, { recursive: true });
+}
 
 // Initialize Socket.io Server attached to same HTTP server (No extra ports needed!)
 const io = new SocketIOServer(server, {
@@ -86,32 +93,25 @@ export function sanitizeDataForGithub(data: any): any {
   const cleanObject = (obj: any) => {
     if (!obj || typeof obj !== 'object') return;
 
-    const forbiddenKeys = [
-      'admin_creds',
-      'password',
-      'masterPin',
-      'pin',
-      'token',
-      'githubToken',
-      'apiKey',
-      'geminiApiKey',
-      'groqApiKey',
-      'openrouterApiKey',
-      'secret',
-      'clientSecret'
-    ];
-
     for (const key of Object.keys(obj)) {
-      if (forbiddenKeys.includes(key)) {
+      const lKey = key.toLowerCase();
+      // Remove any credentials, tokens, passwords, or keys
+      if (
+        lKey.includes('token') ||
+        lKey.includes('apikey') ||
+        lKey.includes('secret') ||
+        lKey.includes('password') ||
+        lKey === 'admin_creds' ||
+        lKey === 'masterpin' ||
+        lKey === 'pin'
+      ) {
         delete obj[key];
       } else if (typeof obj[key] === 'object' && obj[key] !== null) {
         cleanObject(obj[key]);
       } else if (typeof obj[key] === 'string') {
+        // Strip any secret pattern if found anywhere inside the string
         if (
-          /^ghp_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
-          /^AIza[0-9A-Za-z-_]{30,}/i.test(obj[key]) ||
-          /^gsk_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
-          /^sk-or-v1-[a-zA-Z0-9]{20,}/i.test(obj[key])
+          /(ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{30,}|gho_[a-zA-Z0-9]{20,}|ghu_[a-zA-Z0-9]{20,}|ghs_[a-zA-Z0-9]{20,}|ghr_[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z\-_]{30,}|gsk_[a-zA-Z0-9]{20,}|sk-or-v1-[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{20,})/i.test(obj[key])
         ) {
           obj[key] = '';
         }
@@ -432,7 +432,7 @@ interface ServerAISettings {
   fallbackToLocal: boolean;
 }
 
-const AI_SETTINGS_FILE = path.join(DATA_DIR, 'ai_settings.json');
+const AI_SETTINGS_FILE = path.join(SECURE_RUNTIME_DIR, 'ai_settings.json');
 
 // Default initial AI settings (strictly unconfigured until Admin sets keys from Admin Panel)
 let serverAISettings: ServerAISettings = {
@@ -1036,8 +1036,8 @@ async function safeJsonFromResponse<T = any>(res: any, fallback: T = {} as T): P
   }
 }
 
-// Persistent GitHub Configuration on Server
-const GITHUB_CONFIG_FILE = path.join(DATA_DIR, 'github_config.json');
+// Persistent GitHub Configuration on Server (Stored securely in runtime dir outside git repo)
+const GITHUB_CONFIG_FILE = path.join(SECURE_RUNTIME_DIR, 'github_config.json');
 interface SavedGithubConfig {
   token?: string;
   repo?: string;

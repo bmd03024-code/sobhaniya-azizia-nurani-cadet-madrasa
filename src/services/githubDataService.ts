@@ -101,32 +101,25 @@ export function sanitizeDataForGithub(data: any): any {
   const cleanObject = (obj: any) => {
     if (!obj || typeof obj !== 'object') return;
 
-    const forbiddenKeys = [
-      'admin_creds',
-      'password',
-      'masterPin',
-      'pin',
-      'token',
-      'githubToken',
-      'apiKey',
-      'geminiApiKey',
-      'groqApiKey',
-      'openrouterApiKey',
-      'secret',
-      'clientSecret'
-    ];
-
     for (const key of Object.keys(obj)) {
-      if (forbiddenKeys.includes(key)) {
+      const lKey = key.toLowerCase();
+      // Remove any credentials, tokens, passwords, or keys
+      if (
+        lKey.includes('token') ||
+        lKey.includes('apikey') ||
+        lKey.includes('secret') ||
+        lKey.includes('password') ||
+        lKey === 'admin_creds' ||
+        lKey === 'masterpin' ||
+        lKey === 'pin'
+      ) {
         delete obj[key];
       } else if (typeof obj[key] === 'object' && obj[key] !== null) {
         cleanObject(obj[key]);
       } else if (typeof obj[key] === 'string') {
+        // Strip any secret pattern if found anywhere inside the string
         if (
-          /^ghp_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
-          /^AIza[0-9A-Za-z-_]{30,}/i.test(obj[key]) ||
-          /^gsk_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
-          /^sk-or-v1-[a-zA-Z0-9]{20,}/i.test(obj[key])
+          /(ghp_[a-zA-Z0-9]{20,}|github_pat_[a-zA-Z0-9_]{30,}|gho_[a-zA-Z0-9]{20,}|ghu_[a-zA-Z0-9]{20,}|ghs_[a-zA-Z0-9]{20,}|ghr_[a-zA-Z0-9]{20,}|AIza[0-9A-Za-z\-_]{30,}|gsk_[a-zA-Z0-9]{20,}|sk-or-v1-[a-zA-Z0-9]{20,}|sk-[a-zA-Z0-9]{20,})/i.test(obj[key])
         ) {
           obj[key] = '';
         }

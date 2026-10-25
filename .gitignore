@@ -13,3 +13,5 @@ firebase-applet-config.json
 data/ai_settings.json
 data/github_config.json
 data/quota_state.json
+*.key
+*.token
