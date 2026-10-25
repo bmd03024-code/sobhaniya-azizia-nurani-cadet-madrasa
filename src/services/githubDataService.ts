@@ -226,7 +226,7 @@ class GitHubDataService {
 
     const repo = localStorage.getItem(STORAGE_KEYS.REPO) || DEFAULT_REPO;
     const branch = localStorage.getItem(STORAGE_KEYS.BRANCH) || DEFAULT_BRANCH;
-    const autoPush = localStorage.getItem(STORAGE_KEYS.AUTOPUSH) !== 'false';
+    const autoPush = false; // Manual publishing only; never auto-push on save.
 
     return {
       repo: repo.trim(),
@@ -636,26 +636,9 @@ class GitHubDataService {
   /**
    * Debounced Auto-Push for Admin changes
    */
-  public triggerAutoPush(getFullDatabase: () => Record<string, any>, delayMs = 3500) {
-    const cfg = this.getConfig();
-    if (!cfg.autoPushEnabled || !cfg.token) return;
-
-    if (this.pendingPushTimeout) {
-      clearTimeout(this.pendingPushTimeout);
-    }
-
-    this.pendingPushTimeout = setTimeout(() => {
-      const db = getFullDatabase();
-      this.commitAndPush(db, `Admin Auto-Sync: ${new Date().toLocaleTimeString('bn-BD')}`)
-        .then((res) => {
-          if (res.success) {
-            console.log('[GitHub Auto-Push] Success:', res.commitSha);
-          }
-        })
-        .catch((err) => {
-          console.warn('[GitHub Auto-Push Catch]:', err);
-        });
-    }, delayMs);
+  public triggerAutoPush(_getFullDatabase: () => Record<string, any>, _delayMs = 3500) {
+    // Deliberately disabled: admins publish all accumulated changes with the manual Push button.
+    return;
   }
 
   /**
