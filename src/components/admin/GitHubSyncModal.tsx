@@ -36,7 +36,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
   const [token, setToken] = useState(settings.githubToken || currentCfg.token || '');
   const [repo, setRepo] = useState(settings.githubRepo || currentCfg.repo || 'bmd03024-code/sobhaniya-azizia-nurani-cadet-madrasa');
   const [branch, setBranch] = useState(settings.githubBranch || currentCfg.branch || 'main');
-  const [autoPush, setAutoPush] = useState(settings.githubAutoPushEnabled !== false && currentCfg.autoPushEnabled !== false);
+  const [autoPush] = useState(false); // Publishing is manual only.
 
   const [showToken, setShowToken] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
@@ -153,7 +153,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
       const fullDb = storage.getFullDatabase();
       const res = await githubDataService.commitAndPush(
         fullDb,
-        `Admin Auto-Sync: Updates to BS E-Learning database [${new Date().toLocaleString('bn-BD')}]`,
+        `Manual Publish: BS E-Learning database [${new Date().toLocaleString('bn-BD')}]`,
         cleanToken
       );
 
@@ -353,7 +353,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
           {/* Auto Push on Save Toggle */}
           <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-800/40 border border-slate-700">
             <div>
-              <span className="block text-xs font-bold text-white">সেভ করার সাথে সাথে অটো-পুশ চালু রাখুন</span>
+              <span className="block text-xs font-bold text-white">ম্যানুয়াল পুশ মোড চালু</span>
               <span className="block text-[11px] text-slate-400">
                 ড্যাশবোর্ডে যেকোনো তথ্য পরিবর্তন করলে স্বয়ংক্রিয়ভাবে GitHub-এ কমিট হবে
               </span>
