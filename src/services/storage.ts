@@ -669,8 +669,7 @@ class MadrasahStorageService {
       masterGateway.publish(key, value).catch(() => {});
     } catch {}
 
-    // 3. Automated push to GitHub single source of truth
-    githubDataService.triggerAutoPush(() => this.getFullDatabase());
+    // GitHub publishing is manual: save locally and push after all edits are complete.
   }
 
   public saveAll(fullDb: Record<string, any>): void {
@@ -693,8 +692,7 @@ class MadrasahStorageService {
       masterGateway.publishAll(fullDb).catch(() => {});
     } catch {}
 
-    // 3. Automated push to GitHub single source of truth
-    githubDataService.triggerAutoPush(() => fullDb);
+    // GitHub publishing is manual: save locally and push after all edits are complete.
   }
 
   public getFullDatabase(): Record<string, any> {
