@@ -400,15 +400,7 @@ class MasterGatewayEngine {
         });
       } catch {}
 
-      // 5. Commit & Push to GitHub Single Source of Truth
-      const ghPush = await githubDataService.commitAndPush(fullState, `Admin Full Sync: ${new Date().toISOString()}`);
-      if (ghPush.success) {
-        this.status.githubConnected = true;
-        if (ghPush.commitSha) this.status.lastCommitSha = ghPush.commitSha;
-        this.notifyStatus();
-        return true;
-      }
-
+      // GitHub commits are intentionally manual; bulk save only syncs locally/server-side.
       return true;
     } catch (e) {
       console.warn('[MasterGateway] publishAll error:', e);
