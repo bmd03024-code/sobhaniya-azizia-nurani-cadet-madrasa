@@ -529,21 +529,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
     storage.saveAll(fullDb);
     triggerNotification('✓ সকল তথ্য ব্রাউজার ও লাইভ ডাটাবেজে সফলভাবে সংরক্ষিত হয়েছে!');
 
-    // Trigger instant commit to GitHub if configured
-    try {
-      const cfg = githubDataService.getConfig();
-      if (cfg.token) {
-        githubDataService.commitAndPush(fullDb, `Admin Manual Save: ${new Date().toLocaleTimeString('bn-BD')}`)
-          .then((res) => {
-            if (res.success) {
-              triggerNotification('✓ GitHub ও Vercel-এ সফলভাবে ডাটা সিঙ্ক সম্পন্ন হয়েছে!');
-            } else {
-              triggerNotification(`⚠️ GitHub পুশ নোটিস: ${res.message}`);
-            }
-          })
-          .catch(() => {});
-      }
-    } catch {}
+    // GitHub push is intentionally manual. Save changes here, then use the GitHub Sync panel to publish when ready.
   };
 
   // Fee Management Handlers
