@@ -305,7 +305,7 @@ export const GitHubSyncModal: React.FC<GitHubSyncModalProps> = ({
                 required
                 value={token}
                 onChange={e => setToken(e.target.value)}
-                placeholder="ghp_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+                placeholder="GitHub Personal Access Token পেস্ট করুন"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-slate-700 bg-slate-800 text-white text-xs font-mono focus:ring-2 focus:ring-indigo-500 focus:outline-hidden"
               />
             </div>

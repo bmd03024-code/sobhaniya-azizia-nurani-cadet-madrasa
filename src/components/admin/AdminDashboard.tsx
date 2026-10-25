@@ -16,12 +16,14 @@ import {
   AdminCredentials,
   UploadedRoutineDoc,
   StudentFeeBill,
-  FeeItemBreakdown
+  FeeItemBreakdown,
+  HeroSlide
 } from '../../types';
 import { storage } from '../../services/storage';
 import { githubDataService } from '../../services/githubDataService';
 import { ResultGeneratorModule } from './ResultGeneratorModule';
 import { GitHubSyncModal } from './GitHubSyncModal';
+import { HeroSlideManager } from './HeroSlideManager';
 import {
   Settings,
   Users,
@@ -80,6 +82,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
 
   // Live Data States
   const [settings, setSettings] = useState<InstituteSettings>(() => storage.getSettings());
+  const [slides, setSlides] = useState<HeroSlide[]>(() => storage.getSlides());
   const [classes, setClasses] = useState<MadrasahClass[]>(() => storage.getClasses());
   const [subjects, setSubjects] = useState<MadrasahSubject[]>(() => storage.getSubjects());
   const [teachers, setTeachers] = useState<Teacher[]>(() => storage.getTeachers());
@@ -464,6 +467,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
         setSettings(detail.value);
         return;
       }
+      if (detail.key === 'slides' && detail.value) {
+        setSlides(detail.value);
+        return;
+      }
       if (detail.key === 'fee_bills' && detail.value) {
         setFeeBills(detail.value);
         return;
@@ -472,6 +479,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
       // Full refresh only on explicit external GitHub sync
       if (detail.fromGitHub || detail.source === 'manual_pull') {
         setSettings(storage.getSettings());
+        setSlides(storage.getSlides());
         setClasses(storage.getClasses());
         setSubjects(storage.getSubjects());
         setTeachers(storage.getTeachers());
@@ -498,7 +506,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
   const handleSaveAll = () => {
     const fullDb: Record<string, any> = {
       settings,
-      slides: storage.getSlides(),
+      slides,
       shortcuts: storage.getShortcuts(),
       classes,
       subjects,
@@ -1057,6 +1065,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
               <span>ভর্তি আবেদন:</span>
               <span className="font-bold text-amber-700">{pendingApps} টি অপেক্ষমাণ</span>
             </div>
+            <div className="flex justify-between items-center text-slate-600">
+              <span>হিরো স্লাইড:</span>
+              <span className="font-bold text-emerald-800">{slides.filter(s => s.active).length} টি সক্রিয়</span>
+            </div>
             <div className="flex justify-between items-center text-slate-600 pt-2 border-t border-slate-100">
               <span>ক্যাশ ব্যালেন্স:</span>
               <span className="font-black text-emerald-800">৳ {netBalance.toLocaleString('bn-BD')}</span>
@@ -1068,6 +1080,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
             {[
               { id: 'overview', label: '📊 ড্যাশবোর্ড ওভারভিউ', icon: BarChart3 },
               { id: 'settings', label: '🏛️ প্রতিষ্ঠান সেটিংস ও বাণী', icon: Settings },
+              { id: 'slides', label: '🖼️ হিরো স্লাইড ম্যানেজমেন্ট', icon: ImageIcon },
               { id: 'fees', label: '🧾 মাসিক ফি অ্যাড ও রশিদ', icon: Receipt },
               { id: 'teachers', label: '👨‍🏫 শিক্ষক ও আইডি কার্ড', icon: Users },
               { id: 'students', label: '🎓 শিক্ষার্থী ও আইডি কার্ড', icon: GraduationCap },
@@ -1434,6 +1447,15 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                 </button>
               </div>
             </div>
+          )}
+
+          {/* TAB 3: HERO SLIDE MANAGEMENT */}
+          {activeTab === 'slides' && (
+            <HeroSlideManager
+              slides={slides}
+              onSlidesUpdate={setSlides}
+              triggerNotification={triggerNotification}
+            />
           )}
 
           {/* TAB: MONTHLY FEES & BILLS MANAGER */}
@@ -4050,7 +4072,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                     <div className="relative">
                       <input
                         type={showGeminiKey ? 'text' : 'password'}
-                        placeholder="আপনার Gemini API Key এখানে পেস্ট করুন (যেমন: AIzaSy...)"
+                        placeholder="আপনার Gemini API Key এখানে পেস্ট করুন"
                         value={aiSettings.geminiApiKey}
                         onChange={(e) => setAiSettings({ ...aiSettings, geminiApiKey: e.target.value })}
                         className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-blue-600 focus:outline-hidden"
@@ -4115,7 +4137,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                     <div className="relative">
                       <input
                         type={showGroqKey ? 'text' : 'password'}
-                        placeholder="আপনার Groq API Key এখানে দিন (যেমন: gsk_...)"
+                        placeholder="আপনার Groq API Key এখানে দিন"
                         value={aiSettings.groqApiKey}
                         onChange={(e) => setAiSettings({ ...aiSettings, groqApiKey: e.target.value })}
                         className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-amber-600 focus:outline-hidden"
@@ -4180,7 +4202,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                     <div className="relative">
                       <input
                         type={showOpenrouterKey ? 'text' : 'password'}
-                        placeholder="আপনার OpenRouter API Key (যেমন: sk-or-...)"
+                        placeholder="আপনার OpenRouter API Key প্রদান করুন"
                         value={aiSettings.openrouterApiKey}
                         onChange={(e) => setAiSettings({ ...aiSettings, openrouterApiKey: e.target.value })}
                         className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-purple-600 focus:outline-hidden"
@@ -4231,7 +4253,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                     <div className="relative">
                       <input
                         type={showGithubToken ? 'text' : 'password'}
-                        placeholder="আপনার GitHub Token (যেমন: ghp_... অথবা github_pat_...)"
+                        placeholder="আপনার GitHub Personal Access Token প্রদান করুন"
                         value={githubToken}
                         onChange={(e) => setGithubToken(e.target.value)}
                         className="w-full px-3.5 py-2.5 pr-10 rounded-xl border border-slate-300 text-xs font-mono font-medium text-slate-900 focus:border-slate-800 focus:outline-hidden"

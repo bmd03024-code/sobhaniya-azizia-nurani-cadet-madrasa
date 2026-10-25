@@ -706,8 +706,7 @@ class MadrasahStorageService {
       exam_routines: this.getExamRoutines(),
       ledger: this.getLedger(),
       notices: this.getNotices(),
-      gallery: this.getGallery(),
-      admin_creds: this.getAdminCredentials()
+      gallery: this.getGallery()
     };
   }
 
@@ -836,7 +835,7 @@ class MadrasahStorageService {
   }
 
   saveAdminCredentials(creds: AdminCredentials): void {
-    this.set('admin_creds', creds);
+    this.setLocalSilently('admin_creds', creds);
   }
 
   getExams(): ExamTypeItem[] {

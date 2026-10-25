@@ -1033,11 +1033,6 @@
       "type": "বার্ষিক উত্তীর্ণ সনদপত্র"
     }
   ],
-  "admin_creds": {
-    "email": "bmd03024@gmail.com",
-    "password": "01612118307",
-    "masterPin": "992288"
-  },
   "fee_bills": [
     {
       "id": "bill-1",

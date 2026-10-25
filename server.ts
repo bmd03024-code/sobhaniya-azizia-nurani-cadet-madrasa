@@ -78,10 +78,56 @@ app.get('/api/quota-state', (_req: Request, res: Response) => {
   });
 });
 
+// Sanitize database to prevent any secrets or credentials from leaking to disk or GitHub
+export function sanitizeDataForGithub(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+  const clone = JSON.parse(JSON.stringify(data));
+
+  const cleanObject = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    const forbiddenKeys = [
+      'admin_creds',
+      'password',
+      'masterPin',
+      'pin',
+      'token',
+      'githubToken',
+      'apiKey',
+      'geminiApiKey',
+      'groqApiKey',
+      'openrouterApiKey',
+      'secret',
+      'clientSecret'
+    ];
+
+    for (const key of Object.keys(obj)) {
+      if (forbiddenKeys.includes(key)) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        cleanObject(obj[key]);
+      } else if (typeof obj[key] === 'string') {
+        if (
+          /^ghp_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
+          /^AIza[0-9A-Za-z-_]{30,}/i.test(obj[key]) ||
+          /^gsk_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
+          /^sk-or-v1-[a-zA-Z0-9]{20,}/i.test(obj[key])
+        ) {
+          obj[key] = '';
+        }
+      }
+    }
+  };
+
+  cleanObject(clone);
+  return clone;
+}
+
 // Save database to disk and public static paths for 100% reliable Vercel/Express sync
 function persistDatabase() {
   try {
-    const jsonStr = JSON.stringify(database, null, 2);
+    const cleanDb = sanitizeDataForGithub(database);
+    const jsonStr = JSON.stringify(cleanDb, null, 2);
     // 1. Save to persistent data directory
     fs.writeFileSync(DB_FILE, jsonStr, 'utf-8');
 
@@ -1306,27 +1352,26 @@ app.post('/api/github/push', async (req: Request, res: Response) => {
   }
 
   try {
-    let contentStr = '';
     let parsedContent: any = null;
     if (req.body.content) {
       if (typeof req.body.content === 'string') {
-        contentStr = req.body.content;
         try { parsedContent = JSON.parse(req.body.content); } catch {}
       } else {
         parsedContent = req.body.content;
-        contentStr = JSON.stringify(req.body.content, null, 2);
       }
     } else if (fs.existsSync(DB_FILE)) {
-      contentStr = fs.readFileSync(DB_FILE, 'utf-8');
-      try { parsedContent = JSON.parse(contentStr); } catch {}
+      try { parsedContent = JSON.parse(fs.readFileSync(DB_FILE, 'utf-8')); } catch {}
     } else {
       parsedContent = database;
-      contentStr = JSON.stringify(database, null, 2);
     }
 
+    // Always sanitize content before committing to GitHub so no secrets can trigger GitHub Push Protection
+    const cleanContent = sanitizeDataForGithub(parsedContent || database);
+    const contentStr = JSON.stringify(cleanContent, null, 2);
+
     // CRITICAL: Immediately update server's in-memory database, persist to disk, and broadcast to all live browsers!
-    if (parsedContent && typeof parsedContent === 'object' && Object.keys(parsedContent).length > 0) {
-      database = { ...database, ...parsedContent };
+    if (cleanContent && typeof cleanContent === 'object' && Object.keys(cleanContent).length > 0) {
+      database = { ...database, ...cleanContent };
       persistDatabase();
       broadcastUpdate('SYNC_ALL');
     }

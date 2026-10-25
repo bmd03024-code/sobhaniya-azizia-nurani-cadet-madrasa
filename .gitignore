@@ -7,3 +7,9 @@ coverage/
 .env*
 !.env.example
 .env
+
+# Local sensitive runtime configs and tokens
+firebase-applet-config.json
+data/ai_settings.json
+data/github_config.json
+data/quota_state.json

@@ -66,36 +66,193 @@
     }
   ],
   "shortcuts": [
-    { "id": "sc-1", "title": "অনলাইন রেজাল্ট", "iconName": "BarChart3", "badge": "লাইভ মার্কশিট", "color": "from-emerald-700 to-teal-800", "target": "result", "enabled": true },
-    { "id": "sc-2", "title": "ভর্তি আবেদন", "iconName": "UserPlus", "badge": "১০০০৳ ফি", "color": "from-amber-600 to-yellow-600", "target": "admission", "enabled": true },
-    { "id": "sc-3", "title": "ক্লাস রুটিন", "iconName": "Calendar", "badge": "সময়সূচী", "color": "from-green-700 to-emerald-800", "target": "class-routine", "enabled": true },
-    { "id": "sc-4", "title": "পরীক্ষার রুটিন", "iconName": "Clock", "badge": "পরীক্ষা", "color": "from-blue-700 to-cyan-800", "target": "exam-routine", "enabled": true },
-    { "id": "sc-5", "title": "নোটিশ বোর্ড", "iconName": "Bell", "badge": "নতুন বিজ্ঞপ্তি", "color": "from-rose-600 to-red-700", "target": "notice", "enabled": true },
-    { "id": "sc-6", "title": "শিক্ষক মণ্ডলী", "iconName": "Users", "badge": "আইডি কার্ড", "color": "from-teal-700 to-green-800", "target": "teachers", "enabled": true },
-    { "id": "sc-7", "title": "মেধা তালিকা", "iconName": "Award", "badge": "বর্তমান রোল", "color": "from-amber-700 to-orange-700", "target": "merit-list", "enabled": true },
-    { "id": "sc-8", "title": "ফটো গ্যালারি", "iconName": "Image", "badge": "ছবি ও ভিডিও", "color": "from-indigo-700 to-purple-800", "target": "gallery", "enabled": true },
-    { "id": "sc-9", "title": "প্রতিষ্ঠানের বাণী", "iconName": "BookOpen", "badge": "পরিচালনা পরিষদ", "color": "from-emerald-800 to-teal-900", "target": "founder", "enabled": true },
-    { "id": "sc-10", "title": "যোগাযোগ", "iconName": "Phone", "badge": "মীরসরাই", "color": "from-slate-700 to-slate-900", "target": "contact", "enabled": true }
+    {
+      "id": "sc-1",
+      "title": "অনলাইন রেজাল্ট",
+      "iconName": "BarChart3",
+      "badge": "লাইভ মার্কশিট",
+      "color": "from-emerald-700 to-teal-800",
+      "target": "result",
+      "enabled": true
+    },
+    {
+      "id": "sc-2",
+      "title": "ভর্তি আবেদন",
+      "iconName": "UserPlus",
+      "badge": "১০০০৳ ফি",
+      "color": "from-amber-600 to-yellow-600",
+      "target": "admission",
+      "enabled": true
+    },
+    {
+      "id": "sc-3",
+      "title": "ক্লাস রুটিন",
+      "iconName": "Calendar",
+      "badge": "সময়সূচী",
+      "color": "from-green-700 to-emerald-800",
+      "target": "class-routine",
+      "enabled": true
+    },
+    {
+      "id": "sc-4",
+      "title": "পরীক্ষার রুটিন",
+      "iconName": "Clock",
+      "badge": "পরীক্ষা",
+      "color": "from-blue-700 to-cyan-800",
+      "target": "exam-routine",
+      "enabled": true
+    },
+    {
+      "id": "sc-5",
+      "title": "নোটিশ বোর্ড",
+      "iconName": "Bell",
+      "badge": "নতুন বিজ্ঞপ্তি",
+      "color": "from-rose-600 to-red-700",
+      "target": "notice",
+      "enabled": true
+    },
+    {
+      "id": "sc-6",
+      "title": "শিক্ষক মণ্ডলী",
+      "iconName": "Users",
+      "badge": "আইডি কার্ড",
+      "color": "from-teal-700 to-green-800",
+      "target": "teachers",
+      "enabled": true
+    },
+    {
+      "id": "sc-7",
+      "title": "মেধা তালিকা",
+      "iconName": "Award",
+      "badge": "বর্তমান রোল",
+      "color": "from-amber-700 to-orange-700",
+      "target": "merit-list",
+      "enabled": true
+    },
+    {
+      "id": "sc-8",
+      "title": "ফটো গ্যালারি",
+      "iconName": "Image",
+      "badge": "ছবি ও ভিডিও",
+      "color": "from-indigo-700 to-purple-800",
+      "target": "gallery",
+      "enabled": true
+    },
+    {
+      "id": "sc-9",
+      "title": "প্রতিষ্ঠানের বাণী",
+      "iconName": "BookOpen",
+      "badge": "পরিচালনা পরিষদ",
+      "color": "from-emerald-800 to-teal-900",
+      "target": "founder",
+      "enabled": true
+    },
+    {
+      "id": "sc-10",
+      "title": "যোগাযোগ",
+      "iconName": "Phone",
+      "badge": "মীরসরাই",
+      "color": "from-slate-700 to-slate-900",
+      "target": "contact",
+      "enabled": true
+    }
   ],
   "classes": [
-    { "id": "class-shishu", "name": "শিশু শ্রেণি", "code": "SHISHU", "order": 1 },
-    { "id": "class-1", "name": "১ম শ্রেণি", "code": "CLS-01", "order": 2 },
-    { "id": "class-2", "name": "২য় শ্রেণি", "code": "CLS-02", "order": 3 },
-    { "id": "class-3", "name": "৩য় শ্রেণি", "code": "CLS-03", "order": 4 }
+    {
+      "id": "class-shishu",
+      "name": "শিশু শ্রেণি",
+      "code": "SHISHU",
+      "order": 1
+    },
+    {
+      "id": "class-1",
+      "name": "১ম শ্রেণি",
+      "code": "CLS-01",
+      "order": 2
+    },
+    {
+      "id": "class-2",
+      "name": "২য় শ্রেণি",
+      "code": "CLS-02",
+      "order": 3
+    },
+    {
+      "id": "class-3",
+      "name": "৩য় শ্রেণি",
+      "code": "CLS-03",
+      "order": 4
+    }
   ],
   "subjects": [
-    { "id": "subj-1", "name": "কুরআন মাজিদ ও আরবী মৌখিক", "code": "QRN-101", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-2", "name": "হাদিস ও আসমাউল হুসনা", "code": "HDS-102", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-3", "name": "আ: মাসআলা ও আ: সালাত", "code": "MSL-103", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-4", "name": "আরবি", "code": "ARB-104", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-5", "name": "বাংলা", "code": "BAN-105", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-6", "name": "গণিত", "code": "MAT-106", "totalMarks": 100, "passMarks": 40 },
-    { "id": "subj-7", "name": "ইংরেজি", "code": "ENG-107", "totalMarks": 100, "passMarks": 40 }
+    {
+      "id": "subj-1",
+      "name": "কুরআন মাজিদ ও আরবী মৌখিক",
+      "code": "QRN-101",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-2",
+      "name": "হাদিস ও আসমাউল হুসনা",
+      "code": "HDS-102",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-3",
+      "name": "আ: মাসআলা ও আ: সালাত",
+      "code": "MSL-103",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-4",
+      "name": "আরবি",
+      "code": "ARB-104",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-5",
+      "name": "বাংলা",
+      "code": "BAN-105",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-6",
+      "name": "গণিত",
+      "code": "MAT-106",
+      "totalMarks": 100,
+      "passMarks": 40
+    },
+    {
+      "id": "subj-7",
+      "name": "ইংরেজি",
+      "code": "ENG-107",
+      "totalMarks": 100,
+      "passMarks": 40
+    }
   ],
   "exam_types": [
-    { "id": "exam-1", "name": "১ম সাময়িক", "code": "TERM-1", "isAnnual": false },
-    { "id": "exam-2", "name": "২য় সাময়িক", "code": "TERM-2", "isAnnual": false },
-    { "id": "exam-3", "name": "বার্ষিক", "code": "ANNUAL", "isAnnual": true }
+    {
+      "id": "exam-1",
+      "name": "১ম সাময়িক",
+      "code": "TERM-1",
+      "isAnnual": false
+    },
+    {
+      "id": "exam-2",
+      "name": "২য় সাময়িক",
+      "code": "TERM-2",
+      "isAnnual": false
+    },
+    {
+      "id": "exam-3",
+      "name": "বার্ষিক",
+      "code": "ANNUAL",
+      "isAnnual": true
+    }
   ],
   "teachers": [
     {
@@ -106,7 +263,11 @@
       "email": "tofazzel.hossein@gmail.com",
       "qualification": "দাওরায়ে হাদিস (মাস্টার্স সমমান), বেফাকুল মাদারিসিল আরাবিয়া",
       "experience": "১২ বছর দ্বীনি প্রতিষ্ঠান পরিচালনা ও পাঠদান অভিজ্ঞতা",
-      "specialist": ["কুরআন ও তাজবীদ", "হাদিস শরীফ", "ইসলামিক স্টাডিজ"],
+      "specialist": [
+        "কুরআন ও তাজবীদ",
+        "হাদিস শরীফ",
+        "ইসলামিক স্টাডিজ"
+      ],
       "photoUrl": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80",
       "bloodGroup": "O+",
       "joiningDate": "2018-01-01",
@@ -120,7 +281,11 @@
       "email": "jahidul.javed@gmail.com",
       "qualification": "কামিল (হাদিস), বি.এ (অনার্স)",
       "experience": "৮ বছর নূরানী ক্যাডেট প্রশিক্ষণ ও একাডেমি সমন্বয়",
-      "specialist": ["আরবি ব্যাকরণ", "মাসআলা ও সালাত", "বাংলা সাহিত্য"],
+      "specialist": [
+        "আরবি ব্যাকরণ",
+        "মাসআলা ও সালাত",
+        "বাংলা সাহিত্য"
+      ],
       "photoUrl": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80",
       "bloodGroup": "A+",
       "joiningDate": "2019-02-15",
@@ -134,7 +299,11 @@
       "email": "ali.akbor@gmail.com",
       "qualification": "ফাজিল (ইসলামিক স্টাডিজ), নূরানী মুয়াল্লিম বোর্ড প্রশিক্ষণপ্রাপ্ত",
       "experience": "৫ বছর শিশু ও প্রাথমিক নূরানী শ্রেণি শিক্ষণ",
-      "specialist": ["শিশু নূরানী তালীম", "মাখরাজ ও কায়দা", "হাতে সুন্দর লেখা"],
+      "specialist": [
+        "শিশু নূরানী তালীম",
+        "মাখরাজ ও কায়দা",
+        "হাতে সুন্দর লেখা"
+      ],
       "photoUrl": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80",
       "bloodGroup": "B+",
       "joiningDate": "2021-03-01",
@@ -148,7 +317,11 @@
       "email": "onlinetutionbyborhansir@gmail.com",
       "qualification": "বি.এস.সি ও আইসিটি শিক্ষক, নূরানী শিক্ষক প্রশিক্ষণপ্রাপ্ত",
       "experience": "৬ বছর আধুনিক গণিত, বিজ্ঞান ও তথ্যপ্রযুক্তি পাঠদান",
-      "specialist": ["গণিত", "ইংরেজি গ্রামার", "ডিজিটাল একাডেমি"],
+      "specialist": [
+        "গণিত",
+        "ইংরেজি গ্রামার",
+        "ডিজিটাল একাডেমি"
+      ],
       "photoUrl": "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80",
       "bloodGroup": "AB+",
       "joiningDate": "2020-01-10",
@@ -162,7 +335,11 @@
       "email": "amjad.hossein@gmail.com",
       "qualification": "হাফেজে কুরআন ও ক্বারী, নূরানী মুয়াল্লিম সনদ",
       "experience": "৭ বছর হিফজুল কুরআন ও নাজেরা শাখা পরিচালনা",
-      "specialist": ["হিফজুল কুরআন", "আসমাউল হুসনা", "হাদিস মুখস্থকরণ"],
+      "specialist": [
+        "হিফজুল কুরআন",
+        "আসমাউল হুসনা",
+        "হাদিস মুখস্থকরণ"
+      ],
       "photoUrl": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=400&q=80",
       "bloodGroup": "O+",
       "joiningDate": "2020-07-01",
@@ -284,13 +461,69 @@
       "motherName": "রোকেয়া বেগম",
       "phone": "+880 1812-998877",
       "marks": [
-        { "subjectId": "subj-1", "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক", "obtained": 95, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 95 },
-        { "subjectId": "subj-2", "subjectName": "হাদিস ও আসমাউল হুসনা", "obtained": 92, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 94 },
-        { "subjectId": "subj-3", "subjectName": "আ: মাসআলা ও আ: সালাত", "obtained": 90, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 92 },
-        { "subjectId": "subj-4", "subjectName": "আরবি", "obtained": 88, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 90 },
-        { "subjectId": "subj-5", "subjectName": "বাংলা", "obtained": 86, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 88 },
-        { "subjectId": "subj-6", "subjectName": "গণিত", "obtained": 96, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 96 },
-        { "subjectId": "subj-7", "subjectName": "ইংরেজি", "obtained": 87, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 89 }
+        {
+          "subjectId": "subj-1",
+          "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক",
+          "obtained": 95,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 95
+        },
+        {
+          "subjectId": "subj-2",
+          "subjectName": "হাদিস ও আসমাউল হুসনা",
+          "obtained": 92,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 94
+        },
+        {
+          "subjectId": "subj-3",
+          "subjectName": "আ: মাসআলা ও আ: সালাত",
+          "obtained": 90,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 92
+        },
+        {
+          "subjectId": "subj-4",
+          "subjectName": "আরবি",
+          "obtained": 88,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 90
+        },
+        {
+          "subjectId": "subj-5",
+          "subjectName": "বাংলা",
+          "obtained": 86,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 88
+        },
+        {
+          "subjectId": "subj-6",
+          "subjectName": "গণিত",
+          "obtained": 96,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 96
+        },
+        {
+          "subjectId": "subj-7",
+          "subjectName": "ইংরেজি",
+          "obtained": 87,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 89
+        }
       ],
       "totalMarks": 634,
       "gpa": 5.0,
@@ -312,13 +545,69 @@
       "motherName": "শাহিনা আক্তার",
       "phone": "+880 1813-887766",
       "marks": [
-        { "subjectId": "subj-1", "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক", "obtained": 90, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 95 },
-        { "subjectId": "subj-2", "subjectName": "হাদিস ও আসমাউল হুসনা", "obtained": 88, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 94 },
-        { "subjectId": "subj-3", "subjectName": "আ: মাসআলা ও আ: সালাত", "obtained": 85, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 92 },
-        { "subjectId": "subj-4", "subjectName": "আরবি", "obtained": 84, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 90 },
-        { "subjectId": "subj-5", "subjectName": "বাংলা", "obtained": 82, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 88 },
-        { "subjectId": "subj-6", "subjectName": "গণিত", "obtained": 90, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 96 },
-        { "subjectId": "subj-7", "subjectName": "ইংরেজি", "obtained": 81, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 89 }
+        {
+          "subjectId": "subj-1",
+          "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক",
+          "obtained": 90,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 95
+        },
+        {
+          "subjectId": "subj-2",
+          "subjectName": "হাদিস ও আসমাউল হুসনা",
+          "obtained": 88,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 94
+        },
+        {
+          "subjectId": "subj-3",
+          "subjectName": "আ: মাসআলা ও আ: সালাত",
+          "obtained": 85,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 92
+        },
+        {
+          "subjectId": "subj-4",
+          "subjectName": "আরবি",
+          "obtained": 84,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 90
+        },
+        {
+          "subjectId": "subj-5",
+          "subjectName": "বাংলা",
+          "obtained": 82,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 88
+        },
+        {
+          "subjectId": "subj-6",
+          "subjectName": "গণিত",
+          "obtained": 90,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 96
+        },
+        {
+          "subjectId": "subj-7",
+          "subjectName": "ইংরেজি",
+          "obtained": 81,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 89
+        }
       ],
       "totalMarks": 600,
       "gpa": 5.0,
@@ -340,13 +629,69 @@
       "motherName": "হাফেজা আয়েশা খাতুন",
       "phone": "+880 1814-776655",
       "marks": [
-        { "subjectId": "subj-1", "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক", "obtained": 85, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 95 },
-        { "subjectId": "subj-2", "subjectName": "হাদিস ও আসমাউল হুসনা", "obtained": 82, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 94 },
-        { "subjectId": "subj-3", "subjectName": "আ: মাসআলা ও আ: সালাত", "obtained": 78, "total": 100, "grade": "A", "gpa": 4.0, "highestMarks": 92 },
-        { "subjectId": "subj-4", "subjectName": "আরবি", "obtained": 75, "total": 100, "grade": "A", "gpa": 4.0, "highestMarks": 90 },
-        { "subjectId": "subj-5", "subjectName": "বাংলা", "obtained": 76, "total": 100, "grade": "A", "gpa": 4.0, "highestMarks": 88 },
-        { "subjectId": "subj-6", "subjectName": "গণিত", "obtained": 88, "total": 100, "grade": "A+", "gpa": 5.0, "highestMarks": 96 },
-        { "subjectId": "subj-7", "subjectName": "ইংরেজি", "obtained": 74, "total": 100, "grade": "A", "gpa": 4.0, "highestMarks": 89 }
+        {
+          "subjectId": "subj-1",
+          "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক",
+          "obtained": 85,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 95
+        },
+        {
+          "subjectId": "subj-2",
+          "subjectName": "হাদিস ও আসমাউল হুসনা",
+          "obtained": 82,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 94
+        },
+        {
+          "subjectId": "subj-3",
+          "subjectName": "আ: মাসআলা ও আ: সালাত",
+          "obtained": 78,
+          "total": 100,
+          "grade": "A",
+          "gpa": 4.0,
+          "highestMarks": 92
+        },
+        {
+          "subjectId": "subj-4",
+          "subjectName": "আরবি",
+          "obtained": 75,
+          "total": 100,
+          "grade": "A",
+          "gpa": 4.0,
+          "highestMarks": 90
+        },
+        {
+          "subjectId": "subj-5",
+          "subjectName": "বাংলা",
+          "obtained": 76,
+          "total": 100,
+          "grade": "A",
+          "gpa": 4.0,
+          "highestMarks": 88
+        },
+        {
+          "subjectId": "subj-6",
+          "subjectName": "গণিত",
+          "obtained": 88,
+          "total": 100,
+          "grade": "A+",
+          "gpa": 5.0,
+          "highestMarks": 96
+        },
+        {
+          "subjectId": "subj-7",
+          "subjectName": "ইংরেজি",
+          "obtained": 74,
+          "total": 100,
+          "grade": "A",
+          "gpa": 4.0,
+          "highestMarks": 89
+        }
       ],
       "totalMarks": 558,
       "gpa": 4.43,
@@ -358,22 +703,162 @@
     }
   ],
   "class_routines": [
-    { "id": "cr-1", "classId": "class-1", "className": "১ম শ্রেণি", "day": "শনিবার", "period": "১ম পিরিয়ড", "time": "সকাল ৮:০০ - ৮:৪৫", "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক", "teacherName": "মাওলানা তোফাজ্জল হোসেন", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-2", "classId": "class-1", "className": "১ম শ্রেণি", "day": "শনিবার", "period": "২য় পিরিয়ড", "time": "সকাল ৮:৪৫ - ৯:৩০", "subjectName": "হাদিস ও আসমাউল হুসনা", "teacherName": "আমজাদ হোসেন", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-3", "classId": "class-1", "className": "১ম শ্রেণি", "day": "শনিবার", "period": "৩য় পিরিয়ড", "time": "সকাল ৯:৩০ - ১০:১৫", "subjectName": "আ: মাসআলা ও আ: সালাত", "teacherName": "জাহিদুল ইসলাম জাবেদ", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-4", "classId": "class-1", "className": "১ম শ্রেণি", "day": "শনিবার", "period": "৪র্থ পিরিয়ড", "time": "সকাল ১০:১৫ - ১১:০০", "subjectName": "গণিত", "teacherName": "বোরহান উদ্দিন মহিম", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-5", "classId": "class-1", "className": "১ম শ্রেণি", "day": "রবিবার", "period": "১ম পিরিয়ড", "time": "সকাল ৮:০০ - ৮:৪৫", "subjectName": "আরবি", "teacherName": "আলী আকবর", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-6", "classId": "class-1", "className": "১ম শ্রেণি", "day": "রবিবার", "period": "২য় পিরিয়ড", "time": "সকাল ৮:৪৫ - ৯:৩০", "subjectName": "বাংলা", "teacherName": "জাহিদুল ইসলাম জাবেদ", "roomNo": "কক্ষ ১০১" },
-    { "id": "cr-7", "classId": "class-1", "className": "১ম শ্রেণি", "day": "রবিবার", "period": "৩য় পিরিয়ড", "time": "সকাল ৯:৩০ - ১০:১৫", "subjectName": "ইংরেজি", "teacherName": "বোরহান উদ্দিন মহিম", "roomNo": "কক্ষ ১০১" }
+    {
+      "id": "cr-1",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "শনিবার",
+      "period": "১ম পিরিয়ড",
+      "time": "সকাল ৮:০০ - ৮:৪৫",
+      "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক",
+      "teacherName": "মাওলানা তোফাজ্জল হোসেন",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-2",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "শনিবার",
+      "period": "২য় পিরিয়ড",
+      "time": "সকাল ৮:৪৫ - ৯:৩০",
+      "subjectName": "হাদিস ও আসমাউল হুসনা",
+      "teacherName": "আমজাদ হোসেন",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-3",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "শনিবার",
+      "period": "৩য় পিরিয়ড",
+      "time": "সকাল ৯:৩০ - ১০:১৫",
+      "subjectName": "আ: মাসআলা ও আ: সালাত",
+      "teacherName": "জাহিদুল ইসলাম জাবেদ",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-4",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "শনিবার",
+      "period": "৪র্থ পিরিয়ড",
+      "time": "সকাল ১০:১৫ - ১১:০০",
+      "subjectName": "গণিত",
+      "teacherName": "বোরহান উদ্দিন মহিম",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-5",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "রবিবার",
+      "period": "১ম পিরিয়ড",
+      "time": "সকাল ৮:০০ - ৮:৪৫",
+      "subjectName": "আরবি",
+      "teacherName": "আলী আকবর",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-6",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "রবিবার",
+      "period": "২য় পিরিয়ড",
+      "time": "সকাল ৮:৪৫ - ৯:৩০",
+      "subjectName": "বাংলা",
+      "teacherName": "জাহিদুল ইসলাম জাবেদ",
+      "roomNo": "কক্ষ ১০১"
+    },
+    {
+      "id": "cr-7",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "day": "রবিবার",
+      "period": "৩য় পিরিয়ড",
+      "time": "সকাল ৯:৩০ - ১০:১৫",
+      "subjectName": "ইংরেজি",
+      "teacherName": "বোরহান উদ্দিন মহিম",
+      "roomNo": "কক্ষ ১০১"
+    }
   ],
   "exam_routines": [
-    { "id": "er-1", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-১০", "day": "শুক্রবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক", "roomNo": "হলরুম-১" },
-    { "id": "er-2", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-১২", "day": "রবিবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "হাদিস ও আসমাউল হুসনা", "roomNo": "হলরুম-১" },
-    { "id": "er-3", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-১৪", "day": "মঙ্গলবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "আ: মাসআলা ও আ: সালাত", "roomNo": "হলরুম-১" },
-    { "id": "er-4", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-১৬", "day": "বৃহস্পতিবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "আরবি", "roomNo": "হলরুম-১" },
-    { "id": "er-5", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-১৮", "day": "শনিবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "বাংলা", "roomNo": "হলরুম-১" },
-    { "id": "er-6", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-২০", "day": "সোমবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "গণিত", "roomNo": "হলরুম-১" },
-    { "id": "er-7", "examType": "১ম সাময়িক", "classId": "class-1", "className": "১ম শ্রেণি", "date": "২০২৬-০৪-২২", "day": "বুধবার", "time": "সকাল ৯:০০ - ১১:৩০", "subjectName": "ইংরেজি", "roomNo": "হলরুম-১" }
+    {
+      "id": "er-1",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-১০",
+      "day": "শুক্রবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "কুরআন মাজিদ ও আরবী মৌখিক",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-2",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-১২",
+      "day": "রবিবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "হাদিস ও আসমাউল হুসনা",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-3",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-১৪",
+      "day": "মঙ্গলবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "আ: মাসআলা ও আ: সালাত",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-4",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-১৬",
+      "day": "বৃহস্পতিবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "আরবি",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-5",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-১৮",
+      "day": "শনিবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "বাংলা",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-6",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-২০",
+      "day": "সোমবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "গণিত",
+      "roomNo": "হলরুম-১"
+    },
+    {
+      "id": "er-7",
+      "examType": "১ম সাময়িক",
+      "classId": "class-1",
+      "className": "১ম শ্রেণি",
+      "date": "২০২৬-০৪-২২",
+      "day": "বুধবার",
+      "time": "সকাল ৯:০০ - ১১:৩০",
+      "subjectName": "ইংরেজি",
+      "roomNo": "হলরুম-১"
+    }
   ],
   "notices": [
     {
@@ -381,7 +866,9 @@
       "title": "২০২৬ শিক্ষাবর্ষে শিশু শ্রেণি থেকে ৩য় শ্রেণিতে ভর্তি বিজ্ঞপ্তি",
       "date": "২০২৬-০১-০২",
       "content": "সোবহানিয়া আজিজিয়া নূরানী ক্যাডেট মাদ্রাসায় ২০২৬ শিক্ষাবর্ষে শিশু, ১ম, ২য় ও ৩য় শ্রেণিতে শিক্ষার্থী ভর্তি চলছে। ভর্তি ফি ১০০০ টাকা সরাসরি অফিসে জমা দিতে হবে। বই, খাতা, চক ও সিলেট অফিস হতে আলাদা ক্রয় করতে হবে।",
-      "images": ["https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=600&q=80"],
+      "images": [
+        "https://images.unsplash.com/photo-1588072432836-e10032774350?auto=format&fit=crop&w=600&q=80"
+      ],
       "pinned": true
     },
     {
@@ -402,22 +889,104 @@
     }
   ],
   "ledger": [
-    { "id": "led-1", "type": "income", "category": "ভর্তি ফি", "description": "রোল ০১ মোহাম্মদ আব্দুল্লাহ ভর্তি ফি বাবদ গ্রহণ", "amount": 1000, "date": "2026-01-05", "receiptNo": "REC-1001", "academicYear": "2026" },
-    { "id": "led-2", "type": "income", "category": "ভর্তি ফি", "description": "রোল ০২ ফাতিমা বিনতে জামান ভর্তি ফি বাবদ গ্রহণ", "amount": 1000, "date": "2026-01-08", "receiptNo": "REC-1002", "academicYear": "2026" },
-    { "id": "led-3", "type": "income", "category": "ভর্তি ফি", "description": "রোল ০৩ ওমর ফারুক ভর্তি ফি বাবদ গ্রহণ", "amount": 1000, "date": "2026-01-10", "receiptNo": "REC-1003", "academicYear": "2026" },
-    { "id": "led-4", "type": "income", "category": "মাসিক বেতন", "description": "১ম শ্রেণি জানুয়ারি মাসের নিয়মিত বেতন আদায়", "amount": 25000, "date": "2026-01-20", "receiptNo": "REC-1004", "academicYear": "2026" },
-    { "id": "led-5", "type": "expense", "category": "শিক্ষক বেতন", "description": "সকল শিক্ষক ও কর্মচারীদের জানুয়ারি মাসের সম্মানি প্রদান", "amount": 35000, "date": "2026-02-01", "receiptNo": "VOU-2001", "academicYear": "2026" },
-    { "id": "led-6", "type": "expense", "category": "ইউটিলিটি ও বিদ্যুৎ বিল", "description": "মাদ্রাসার জানুয়ারি মাসের বিদ্যুৎ বিল পরিশোধ", "amount": 3200, "date": "2026-02-05", "receiptNo": "VOU-2002", "academicYear": "2026" },
-    { "id": "led-7", "type": "expense", "category": "আপ্যায়ন ও মেরামত", "description": "অভিভাবক সমাবেশ আপ্যায়ন ও লাইব্রেরি শেলফ মেরামত", "amount": 2400, "date": "2026-02-12", "receiptNo": "VOU-2003", "academicYear": "2026" }
+    {
+      "id": "led-1",
+      "type": "income",
+      "category": "ভর্তি ফি",
+      "description": "রোল ০১ মোহাম্মদ আব্দুল্লাহ ভর্তি ফি বাবদ গ্রহণ",
+      "amount": 1000,
+      "date": "2026-01-05",
+      "receiptNo": "REC-1001",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-2",
+      "type": "income",
+      "category": "ভর্তি ফি",
+      "description": "রোল ০২ ফাতিমা বিনতে জামান ভর্তি ফি বাবদ গ্রহণ",
+      "amount": 1000,
+      "date": "2026-01-08",
+      "receiptNo": "REC-1002",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-3",
+      "type": "income",
+      "category": "ভর্তি ফি",
+      "description": "রোল ০৩ ওমর ফারুক ভর্তি ফি বাবদ গ্রহণ",
+      "amount": 1000,
+      "date": "2026-01-10",
+      "receiptNo": "REC-1003",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-4",
+      "type": "income",
+      "category": "মাসিক বেতন",
+      "description": "১ম শ্রেণি জানুয়ারি মাসের নিয়মিত বেতন আদায়",
+      "amount": 25000,
+      "date": "2026-01-20",
+      "receiptNo": "REC-1004",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-5",
+      "type": "expense",
+      "category": "শিক্ষক বেতন",
+      "description": "সকল শিক্ষক ও কর্মচারীদের জানুয়ারি মাসের সম্মানি প্রদান",
+      "amount": 35000,
+      "date": "2026-02-01",
+      "receiptNo": "VOU-2001",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-6",
+      "type": "expense",
+      "category": "ইউটিলিটি ও বিদ্যুৎ বিল",
+      "description": "মাদ্রাসার জানুয়ারি মাসের বিদ্যুৎ বিল পরিশোধ",
+      "amount": 3200,
+      "date": "2026-02-05",
+      "receiptNo": "VOU-2002",
+      "academicYear": "2026"
+    },
+    {
+      "id": "led-7",
+      "type": "expense",
+      "category": "আপ্যায়ন ও মেরামত",
+      "description": "অভিভাবক সমাবেশ আপ্যায়ন ও লাইব্রেরি শেলফ মেরামত",
+      "amount": 2400,
+      "date": "2026-02-12",
+      "receiptNo": "VOU-2003",
+      "academicYear": "2026"
+    }
   ],
   "gallery": [
-    { "id": "gal-1", "title": "বার্ষিক কুরআন তিলাওয়াত প্রতিযোগিতা", "caption": "শিক্ষার্থীদের মনোমুগ্ধকর তিলাওয়াত ও পুরস্কার বিতরণী", "type": "image", "url": "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=800&q=80", "category": "অনুষ্ঠান", "date": "২০২৬-০২-১২" },
-    { "id": "gal-2", "title": "শিশু শ্রেণির নূরানী মাখরাজ প্রশিক্ষণ ক্লাস", "caption": "হাতে-কলমে বর্ণমালা ও সহীহ মাখরাজ শিক্ষাদান", "type": "image", "url": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80", "category": "ক্লাসরুম", "date": "২০২৬-০১-২০" },
-    { "id": "gal-3", "title": "মাদ্রাসার মনোরম ক্যাম্পাস ও অভিভাবক সমাবেশ", "caption": "নৈতিক শিক্ষার গুরুত্ব ও পাঠদান পদ্ধতি বিষয়ক আলোচনা", "type": "image", "url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80", "category": "ক্যাম্পাস", "date": "২০২৬-০২-০৫" }
-  ],
-  "admin_creds": {
-    "email": "bmd03024@gmail.com",
-    "password": "01612118307",
-    "masterPin": "992288"
-  }
+    {
+      "id": "gal-1",
+      "title": "বার্ষিক কুরআন তিলাওয়াত প্রতিযোগিতা",
+      "caption": "শিক্ষার্থীদের মনোমুগ্ধকর তিলাওয়াত ও পুরস্কার বিতরণী",
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1542810634-71277d95dcbb?auto=format&fit=crop&w=800&q=80",
+      "category": "অনুষ্ঠান",
+      "date": "২০২৬-০২-১২"
+    },
+    {
+      "id": "gal-2",
+      "title": "শিশু শ্রেণির নূরানী মাখরাজ প্রশিক্ষণ ক্লাস",
+      "caption": "হাতে-কলমে বর্ণমালা ও সহীহ মাখরাজ শিক্ষাদান",
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=800&q=80",
+      "category": "ক্লাসরুম",
+      "date": "২০২৬-০১-২০"
+    },
+    {
+      "id": "gal-3",
+      "title": "মাদ্রাসার মনোরম ক্যাম্পাস ও অভিভাবক সমাবেশ",
+      "caption": "নৈতিক শিক্ষার গুরুত্ব ও পাঠদান পদ্ধতি বিষয়ক আলোচনা",
+      "type": "image",
+      "url": "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&w=800&q=80",
+      "category": "ক্যাম্পাস",
+      "date": "২০২৬-০২-০৫"
+    }
+  ]
 }

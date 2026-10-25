@@ -90,6 +90,54 @@ export function getGithubAuthHeader(rawToken?: string): string {
   return `Bearer ${token}`;
 }
 
+/**
+ * Sanitize institutional data before pushing to GitHub to strictly prevent
+ * any secrets, passwords, or tokens from being committed to the public/private repository.
+ */
+export function sanitizeDataForGithub(data: any): any {
+  if (!data || typeof data !== 'object') return data;
+  const clone = JSON.parse(JSON.stringify(data));
+
+  const cleanObject = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return;
+
+    const forbiddenKeys = [
+      'admin_creds',
+      'password',
+      'masterPin',
+      'pin',
+      'token',
+      'githubToken',
+      'apiKey',
+      'geminiApiKey',
+      'groqApiKey',
+      'openrouterApiKey',
+      'secret',
+      'clientSecret'
+    ];
+
+    for (const key of Object.keys(obj)) {
+      if (forbiddenKeys.includes(key)) {
+        delete obj[key];
+      } else if (typeof obj[key] === 'object' && obj[key] !== null) {
+        cleanObject(obj[key]);
+      } else if (typeof obj[key] === 'string') {
+        if (
+          /^ghp_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
+          /^AIza[0-9A-Za-z-_]{30,}/i.test(obj[key]) ||
+          /^gsk_[a-zA-Z0-9]{20,}/i.test(obj[key]) ||
+          /^sk-or-v1-[a-zA-Z0-9]{20,}/i.test(obj[key])
+        ) {
+          obj[key] = '';
+        }
+      }
+    }
+  };
+
+  cleanObject(clone);
+  return clone;
+}
+
 class GitHubDataService {
   private static instance: GitHubDataService;
   private channel: BroadcastChannel | null = null;
@@ -437,7 +485,8 @@ class GitHubDataService {
       return { success: false, message: 'GitHub রিপোজিটরির নাম কনফিগার করা হয়নি।' };
     }
 
-    const jsonString = JSON.stringify(database, null, 2);
+    const cleanDb = sanitizeDataForGithub(database);
+    const jsonString = JSON.stringify(cleanDb, null, 2);
 
     // 1. Try server endpoint first (when running on Express full-stack)
     try {
@@ -448,7 +497,7 @@ class GitHubDataService {
           token,
           repo,
           branch,
-          content: database,
+          content: cleanDb,
           message: msg
         })
       });
