@@ -157,9 +157,12 @@ class MasterGatewayEngine {
           this.status.lastSyncTime = Date.now();
           this.notifyStatus();
           for (const [k, v] of Object.entries(payload.data)) {
-            try {
-              localStorage.setItem(`bs_${k}`, JSON.stringify(v));
-            } catch {}
+            const isAuth = localStorage.getItem(`bs_authoritative_${k}`) === 'true';
+            if (!isAuth || !localStorage.getItem(`bs_${k}`)) {
+              try {
+                localStorage.setItem(`bs_${k}`, JSON.stringify(v));
+              } catch {}
+            }
           }
           this.dispatchChange('all', payload.data, 'broadcast');
         } else if (payload.key) {
@@ -230,9 +233,12 @@ class MasterGatewayEngine {
         this.notifyStatus();
 
         for (const [k, v] of Object.entries(payload.data)) {
-          try {
-            localStorage.setItem(`bs_${k}`, JSON.stringify(v));
-          } catch {}
+          const isAuth = localStorage.getItem(`bs_authoritative_${k}`) === 'true';
+          if (!isAuth || !localStorage.getItem(`bs_${k}`)) {
+            try {
+              localStorage.setItem(`bs_${k}`, JSON.stringify(v));
+            } catch {}
+          }
         }
         this.dispatchChange('all', payload.data, 'socket');
       });
@@ -300,9 +306,12 @@ class MasterGatewayEngine {
 
             if (payload.data && typeof payload.data === 'object') {
               for (const [k, v] of Object.entries(payload.data)) {
-                try {
-                  localStorage.setItem(`bs_${k}`, JSON.stringify(v));
-                } catch {}
+                const isAuth = localStorage.getItem(`bs_authoritative_${k}`) === 'true';
+                if (!isAuth || !localStorage.getItem(`bs_${k}`)) {
+                  try {
+                    localStorage.setItem(`bs_${k}`, JSON.stringify(v));
+                  } catch {}
+                }
               }
             }
             this.dispatchChange('all', payload.data, 'sse');

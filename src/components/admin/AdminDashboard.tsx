@@ -61,7 +61,8 @@ import {
   Play,
   Eye,
   Receipt,
-  CreditCard
+  CreditCard,
+  Camera
 } from 'lucide-react';
 import { toBengaliNum } from '../home/CoursesSection';
 
@@ -252,13 +253,33 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
     setTimeout(() => setNotification(null), 3500);
   };
 
-  // Real-Time Synchronizer for Admin Dashboard
+  // Real-Time Synchronizer for Admin Dashboard (Respects Admin Authority)
   useEffect(() => {
     const handleSync = (e: any) => {
       const detail = e.detail || {};
-      const key = detail.key;
-      // Refresh dashboard state on incoming live sync
-      if (detail.fromServer || detail.fromGitHub || detail.fromGateway || key === 'all') {
+      // Ignore events dispatched by actions in this local admin session
+      if (detail.fromLocalAdmin) return;
+
+      // Selective update if specific module changed from outside
+      if (detail.key === 'teachers' && detail.value) {
+        setTeachers(detail.value);
+        return;
+      }
+      if (detail.key === 'students' && detail.value) {
+        setStudents(detail.value);
+        return;
+      }
+      if (detail.key === 'settings' && detail.value) {
+        setSettings(detail.value);
+        return;
+      }
+      if (detail.key === 'fee_bills' && detail.value) {
+        setFeeBills(detail.value);
+        return;
+      }
+
+      // Full refresh only on explicit external GitHub sync
+      if (detail.fromGitHub || detail.source === 'manual_pull') {
         setSettings(storage.getSettings());
         setClasses(storage.getClasses());
         setSubjects(storage.getSubjects());
@@ -1854,8 +1875,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                             alt={t.name}
                             className="w-16 h-20 rounded-xl object-cover border border-slate-300"
                           />
-                          <label className="absolute inset-0 bg-black/50 text-white text-[9px] font-bold rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity">
-                            ছবি পরিবর্তন
+                          <label
+                            title="ছবি পরিবর্তন করুন"
+                            className="absolute inset-0 bg-black/60 text-white text-[9px] font-bold rounded-xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity"
+                          >
+                            <Camera className="w-4 h-4 text-amber-300 mb-0.5" />
+                            <span>ছবি পরিবর্তন</span>
                             <input
                               type="file"
                               accept="image/*"
@@ -1865,7 +1890,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                                   const updated = teachers.map(tc => (tc.id === t.id ? { ...tc, photoUrl: b64 } : tc));
                                   setTeachers(updated);
                                   storage.saveTeachers(updated);
-                                  triggerNotification(`'${t.name}'-এর ছবি আপডেট হয়েছে!`);
+                                  triggerNotification(`'${t.name}'-এর ছবি সফলভাবে আপডেট ও সেভ হয়েছে!`);
                                 })
                               }
                             />
@@ -1897,23 +1922,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                           </button>
 
                           <button
-                            onClick={() => {
-                              const newName = prompt('শিক্ষকের নাম সম্পাদনা করুন:', t.name);
-                              if (newName && newName.trim()) {
-                                const newPhone = prompt('মোবাইল নম্বর:', t.phone) || t.phone;
-                                const newDesig = prompt('পদবি:', t.designation) || t.designation;
-                                const updated = teachers.map(tc =>
-                                  tc.id === t.id ? { ...tc, name: newName.trim(), phone: newPhone.trim(), designation: newDesig.trim() } : tc
-                                );
-                                setTeachers(updated);
-                                storage.saveTeachers(updated);
-                                triggerNotification('শিক্ষকের তথ্য আপডেট হয়েছে!');
-                              }
-                            }}
-                            className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 text-slate-700"
-                            title="সম্পাদনা"
+                            onClick={() => setEditingTeacher({ ...t })}
+                            className="px-2.5 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold text-xs flex items-center gap-1 border border-blue-200"
+                            title="সকল তথ্য ও ছবি সম্পাদন করুন"
                           >
                             <Edit className="w-3.5 h-3.5" />
+                            <span>এডিট</span>
                           </button>
 
                           <button
@@ -1933,13 +1947,238 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                         </div>
 
                         <span className="text-[10px] text-slate-500 font-bold bg-white px-1.5 py-0.5 rounded border border-slate-200">
-                          {t.bloodGroup || 'A+'}
+                          {t.bloodGroup || 'O+'}
                         </span>
                       </div>
                     </div>
                   ))}
                 </div>
               </div>
+
+              {/* Comprehensive Edit Teacher Modal */}
+              {editingTeacher && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
+                  <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 sm:p-8 space-y-5 my-8 animate-in fade-in zoom-in-95 duration-150">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-bold">
+                          <Users className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h3 className="text-base sm:text-lg font-bold text-slate-900">
+                            শিক্ষকের সকল তথ্য ও ছবি সম্পাদন (Edit Profile)
+                          </h3>
+                          <span className="text-xs text-slate-500 font-mono">
+                            Teacher ID: {editingTeacher.id}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setEditingTeacher(null)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </div>
+
+                    {/* Photo Edit Section */}
+                    <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 flex flex-col sm:flex-row items-center gap-4">
+                      <div className="relative group shrink-0">
+                        <img
+                          src={editingTeacher.photoUrl || 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80'}
+                          alt={editingTeacher.name}
+                          className="w-24 h-28 object-cover rounded-2xl border-2 border-emerald-700 shadow-md"
+                        />
+                        <label className="cursor-pointer absolute inset-0 bg-black/60 text-white rounded-2xl flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-bold">
+                          <Camera className="w-5 h-5 mb-1 text-amber-300" />
+                          <span>ছবি পরিবর্তন</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFileToBase64(e, (b64) => {
+                                setEditingTeacher({ ...editingTeacher, photoUrl: b64 });
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
+
+                      <div className="grow space-y-2 text-center sm:text-left w-full">
+                        <div className="text-xs font-bold text-emerald-950">শিক্ষকের প্রোফাইল ছবি পরিবর্তন ও আপলোড:</div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs">
+                            <Upload className="w-3.5 h-3.5 text-amber-300" />
+                            <span>ডিভাইস বা ফাইল থেকে নতুন ছবি আপলোড</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) =>
+                                handleFileToBase64(e, (b64) => {
+                                  setEditingTeacher({ ...editingTeacher, photoUrl: b64 });
+                                })
+                              }
+                            />
+                          </label>
+                        </div>
+                        <div>
+                          <label className="block text-[11px] font-semibold text-slate-600 mb-1">অথবা অনলাইন ছবির লিঙ্ক (URL) দিন:</label>
+                          <input
+                            type="url"
+                            value={editingTeacher.photoUrl}
+                            onChange={(e) => setEditingTeacher({ ...editingTeacher, photoUrl: e.target.value })}
+                            placeholder="https://images.unsplash.com/..."
+                            className="w-full px-3 py-1.5 rounded-xl border border-slate-300 text-xs font-mono bg-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Fields Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs">
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">শিক্ষকের পূর্ণ নাম *</label>
+                        <input
+                          type="text"
+                          required
+                          value={editingTeacher.name}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, name: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">পদবি *</label>
+                        <select
+                          value={editingTeacher.designation}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, designation: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold text-emerald-800 bg-white"
+                        >
+                          <option value="প্রধান শিক্ষক">প্রধান শিক্ষক</option>
+                          <option value="সহ-প্রধান শিক্ষক">সহ-প্রধান শিক্ষক</option>
+                          <option value="সহকারী শিক্ষক">সহকারী শিক্ষক</option>
+                          <option value="হিফজ শিক্ষক">হিফজ শিক্ষক</option>
+                          <option value="নূরানী ক্বারী">নূরানী ক্বারী</option>
+                          <option value="ক্বারী ও মুয়াল্লিম">ক্বারী ও মুয়াল্লিম</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">মোবাইল নম্বর *</label>
+                        <input
+                          type="tel"
+                          value={editingTeacher.phone}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, phone: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">ইমেইল</label>
+                        <input
+                          type="email"
+                          value={editingTeacher.email || ''}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, email: e.target.value })}
+                          placeholder="teacher@gmail.com"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 font-mono"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">শিক্ষাগত যোগ্যতা</label>
+                        <input
+                          type="text"
+                          value={editingTeacher.qualification}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, qualification: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">অভিজ্ঞতা</label>
+                        <input
+                          type="text"
+                          value={editingTeacher.experience}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, experience: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">রক্তের গ্রুপ</label>
+                        <select
+                          value={editingTeacher.bloodGroup || 'O+'}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, bloodGroup: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 font-bold bg-white"
+                        >
+                          <option value="A+">A+</option>
+                          <option value="B+">B+</option>
+                          <option value="O+">O+</option>
+                          <option value="AB+">AB+</option>
+                          <option value="A-">A-</option>
+                          <option value="B-">B-</option>
+                          <option value="O-">O-</option>
+                          <option value="AB-">AB-</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block font-bold text-slate-700 mb-1">যোগদানের সন / তারিখ</label>
+                        <input
+                          type="text"
+                          value={editingTeacher.joiningDate || ''}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, joiningDate: e.target.value })}
+                          placeholder="২০১৮"
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300"
+                        />
+                      </div>
+
+                      <div className="sm:col-span-2">
+                        <label className="block font-bold text-slate-700 mb-1">সংক্ষিপ্ত পরিচিতি / বায়ো</label>
+                        <textarea
+                          rows={2}
+                          value={editingTeacher.bio || ''}
+                          onChange={(e) => setEditingTeacher({ ...editingTeacher, bio: e.target.value })}
+                          placeholder="শিক্ষকের সংক্ষিপ্ত পরিচিতি..."
+                          className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs resize-none"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Modal Buttons */}
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
+                      <button
+                        type="button"
+                        onClick={() => setEditingTeacher(null)}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100"
+                      >
+                        বাতিল
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!editingTeacher.name.trim()) {
+                            alert('শিক্ষকের নাম দিন।');
+                            return;
+                          }
+                          const updated = teachers.map(tc => tc.id === editingTeacher.id ? editingTeacher : tc);
+                          setTeachers(updated);
+                          storage.saveTeachers(updated);
+                          triggerNotification(`✅ শিক্ষক '${editingTeacher.name}'-এর সকল তথ্য ও ছবি সফলভাবে সংরক্ষিত হয়েছে!`);
+                          setEditingTeacher(null);
+                        }}
+                        className="px-6 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-md flex items-center gap-1.5"
+                      >
+                        <Save className="w-4 h-4 text-amber-300" />
+                        <span>তথ্য ও ছবি সংরক্ষণ করুন</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -3853,7 +4092,37 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
 
               {/* 5. Teacher ID Card */}
               {printDocumentType === 'teacher_id' && selectedTeacherForPrint && (
-                <div className="printable-area flex justify-center p-6">
+                <div className="printable-area flex flex-col items-center justify-center p-4 sm:p-6 space-y-4">
+                  {/* Photo Change Bar (No Print) */}
+                  <div className="no-print bg-emerald-50 border border-emerald-300 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 w-full max-w-sm shadow-sm">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-4 h-4 text-emerald-800 shrink-0" />
+                      <span className="text-xs font-bold text-emerald-950">
+                        আইডি কার্ডের ছবি পরিবর্তন:
+                      </span>
+                    </div>
+                    <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors">
+                      <Upload className="w-3.5 h-3.5 text-amber-300" />
+                      <span>নতুন ছবি আপলোড</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) =>
+                          handleFileToBase64(e, (b64) => {
+                            const updated = teachers.map(tc =>
+                              tc.id === selectedTeacherForPrint.id ? { ...tc, photoUrl: b64 } : tc
+                            );
+                            setTeachers(updated);
+                            setSelectedTeacherForPrint({ ...selectedTeacherForPrint, photoUrl: b64 });
+                            storage.saveTeachers(updated);
+                            triggerNotification(`'${selectedTeacherForPrint.name}'-এর ছবি আইডি কার্ডে আপডেট হয়েছে!`);
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
                   <div className="id-card-frame bg-gradient-to-b from-emerald-950 via-emerald-900 to-slate-950 text-white p-5 flex flex-col items-center justify-between border-4 border-amber-400 relative">
                     <div className="text-center w-full">
                       <div className="font-arabic text-[11px] text-amber-300 font-bold">﷽</div>
@@ -3867,11 +4136,36 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ onLogout, onView
                     </div>
 
                     <div className="text-center my-2 space-y-2">
-                      <img
-                        src={selectedTeacherForPrint.photoUrl}
-                        alt={selectedTeacherForPrint.name}
-                        className="w-24 h-28 object-cover rounded-xl border-2 border-amber-400 shadow-md mx-auto"
-                      />
+                      <div className="relative group inline-block">
+                        <img
+                          src={selectedTeacherForPrint.photoUrl}
+                          alt={selectedTeacherForPrint.name}
+                          className="w-24 h-28 object-cover rounded-xl border-2 border-amber-400 shadow-md mx-auto"
+                        />
+                        <label
+                          title="ছবি পরিবর্তন করুন"
+                          className="no-print cursor-pointer absolute inset-0 bg-black/60 rounded-xl text-white text-[9px] font-bold flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <Camera className="w-4 h-4 text-amber-300 mb-0.5" />
+                          <span>ছবি পরিবর্তন</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) =>
+                              handleFileToBase64(e, (b64) => {
+                                const updated = teachers.map(tc =>
+                                  tc.id === selectedTeacherForPrint.id ? { ...tc, photoUrl: b64 } : tc
+                                );
+                                setTeachers(updated);
+                                setSelectedTeacherForPrint({ ...selectedTeacherForPrint, photoUrl: b64 });
+                                storage.saveTeachers(updated);
+                                triggerNotification(`'${selectedTeacherForPrint.name}'-এর ছবি আইডি কার্ডে আপডেট হয়েছে!`);
+                              })
+                            }
+                          />
+                        </label>
+                      </div>
                       <h3 className="text-base font-bold text-white">{selectedTeacherForPrint.name}</h3>
                       <p className="text-xs text-amber-300 font-semibold">{selectedTeacherForPrint.designation}</p>
                       <span className="text-[11px] font-mono font-bold bg-white/10 px-2.5 py-0.5 rounded text-emerald-200 block">

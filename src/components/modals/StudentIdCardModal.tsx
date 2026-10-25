@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Student, Teacher, MadrasahClass } from '../../types';
 import { storage } from '../../services/storage';
-import { X, Search, Printer, AlertCircle, ShieldCheck, Sparkles, GraduationCap, Users } from 'lucide-react';
+import { X, Search, Printer, AlertCircle, ShieldCheck, Sparkles, GraduationCap, Users, Camera, Upload, CheckCircle2 } from 'lucide-react';
 import { toBengaliNum } from '../home/CoursesSection';
 
 interface StudentIdCardModalProps {
@@ -37,6 +37,7 @@ export const StudentIdCardModal: React.FC<StudentIdCardModalProps> = ({
   const [foundTeacher, setFoundTeacher] = useState<Teacher | null>(initialTeacher || teachers[0] || null);
 
   const [errorMsg, setErrorMsg] = useState('');
+  const [photoChangeSuccess, setPhotoChangeSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -278,50 +279,125 @@ export const StudentIdCardModal: React.FC<StudentIdCardModalProps> = ({
 
           {/* TEACHER ID CARD */}
           {mode === 'teacher' && foundTeacher && (
-            <div className="printable-area id-card-frame bg-white border-2 border-emerald-900 flex flex-col justify-between text-slate-900 relative p-0 overflow-hidden shadow-xl">
-              {/* Card Header */}
-              <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-900 text-white p-3.5 text-center relative border-b-2 border-amber-400">
-                <div className="font-arabic text-xs text-amber-300 font-bold leading-none mb-0.5">﷽</div>
-                <h3 className="font-black text-sm tracking-tight text-white leading-tight">
-                  {settings.name}
-                </h3>
-                <p className="text-[9px] text-emerald-200">উত্তর ওয়াহেদপুর, মীরসরাই, চট্টগ্রাম</p>
-                <div className="inline-block px-3 py-0.5 bg-amber-400 text-slate-950 rounded-full text-[9px] font-black mt-1">
-                  শিক্ষক পরিচয়পত্র (TEACHER ID CARD)
+            <div className="space-y-4 flex flex-col items-center">
+              {/* Teacher Photo Change Bar (No Print) */}
+              <div className="no-print w-full max-w-sm bg-emerald-50 border border-emerald-300 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2">
+                  <Camera className="w-4 h-4 text-emerald-800 shrink-0" />
+                  <span className="text-xs font-bold text-emerald-950">
+                    শিক্ষকের ছবি পরিবর্তন:
+                  </span>
                 </div>
-              </div>
-
-              {/* Photo & Teacher ID */}
-              <div className="px-4 py-3 flex flex-col items-center text-center">
-                <div className="w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-emerald-700 p-0.5 bg-white shadow-md mb-2">
-                  <img
-                    src={foundTeacher.photoUrl}
-                    alt={foundTeacher.name}
-                    className="w-full h-full object-cover rounded-xl"
+                <label className="cursor-pointer inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs transition-colors">
+                  <Upload className="w-3.5 h-3.5 text-amber-300" />
+                  <span>নতুন ছবি আপলোড</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          const b64 = reader.result as string;
+                          setFoundTeacher({ ...foundTeacher, photoUrl: b64 });
+                          const allTeachers = storage.getTeachers();
+                          const updated = allTeachers.map(tc =>
+                            tc.id === foundTeacher.id ? { ...tc, photoUrl: b64 } : tc
+                          );
+                          storage.saveTeachers(updated);
+                          setPhotoChangeSuccess(true);
+                          setTimeout(() => setPhotoChangeSuccess(false), 3500);
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
                   />
-                </div>
-
-                <h4 className="font-black text-base text-emerald-950 leading-tight">
-                  {foundTeacher.name}
-                </h4>
-                <p className="text-xs font-bold text-emerald-800">{foundTeacher.designation}</p>
-
-                <div className="mt-1 px-3 py-0.5 bg-emerald-900 text-amber-300 rounded-full text-xs font-mono font-black border border-amber-400">
-                  Teacher ID: {foundTeacher.id}
-                </div>
+                </label>
               </div>
 
-              {/* Info Details */}
-              <div className="px-5 text-[11px] space-y-1.5 text-slate-800">
-                <div className="flex justify-between border-b border-slate-100 pb-0.5">
-                  <span className="text-slate-500 font-medium">মোবাইল:</span>
-                  <span className="font-mono font-bold text-slate-900">{foundTeacher.phone}</span>
+              {photoChangeSuccess && (
+                <div className="no-print bg-emerald-900 text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow-md border border-amber-400 animate-in fade-in slide-in-from-top-2">
+                  <CheckCircle2 className="w-4 h-4 text-amber-300" />
+                  <span>✓ শিক্ষকের ছবি সফলভাবে পরিবর্তন ও সংরক্ষণ হয়েছে!</span>
                 </div>
-                <div className="flex justify-between border-b border-slate-100 pb-0.5">
-                  <span className="text-slate-500 font-medium">রক্তের গ্রুপ:</span>
-                  <span className="font-bold text-rose-600">{foundTeacher.bloodGroup || 'O+'}</span>
+              )}
+
+              <div className="printable-area id-card-frame bg-white border-2 border-emerald-900 flex flex-col justify-between text-slate-900 relative p-0 overflow-hidden shadow-xl w-full">
+                {/* Card Header */}
+                <div className="bg-gradient-to-r from-emerald-950 via-teal-900 to-emerald-900 text-white p-3.5 text-center relative border-b-2 border-amber-400">
+                  <div className="font-arabic text-xs text-amber-300 font-bold leading-none mb-0.5">﷽</div>
+                  <h3 className="font-black text-sm tracking-tight text-white leading-tight">
+                    {settings.name}
+                  </h3>
+                  <p className="text-[9px] text-emerald-200">উত্তর ওয়াহেদপুর, মীরসরাই, চট্টগ্রাম</p>
+                  <div className="inline-block px-3 py-0.5 bg-amber-400 text-slate-950 rounded-full text-[9px] font-black mt-1">
+                    শিক্ষক পরিচয়পত্র (TEACHER ID CARD)
+                  </div>
                 </div>
-                <div className="flex justify-between border-b border-slate-100 pb-0.5">
+
+                {/* Photo & Teacher ID */}
+                <div className="px-4 py-3 flex flex-col items-center text-center">
+                  <div className="relative group w-24 h-24 rounded-2xl overflow-hidden ring-2 ring-emerald-700 p-0.5 bg-white shadow-md mb-2">
+                    <img
+                      src={foundTeacher.photoUrl}
+                      alt={foundTeacher.name}
+                      className="w-full h-full object-cover rounded-xl"
+                    />
+                    <label
+                      title="ছবি পরিবর্তন করুন"
+                      className="no-print cursor-pointer absolute inset-0 bg-black/60 rounded-xl text-white text-[9px] font-bold flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Camera className="w-4 h-4 text-amber-300 mb-0.5" />
+                      <span>ছবি পরিবর্তন</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            const reader = new FileReader();
+                            reader.onload = () => {
+                              const b64 = reader.result as string;
+                              setFoundTeacher({ ...foundTeacher, photoUrl: b64 });
+                              const allTeachers = storage.getTeachers();
+                              const updated = allTeachers.map(tc =>
+                                tc.id === foundTeacher.id ? { ...tc, photoUrl: b64 } : tc
+                              );
+                              storage.saveTeachers(updated);
+                              setPhotoChangeSuccess(true);
+                              setTimeout(() => setPhotoChangeSuccess(false), 3500);
+                            };
+                            reader.readAsDataURL(file);
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <h4 className="font-black text-base text-emerald-950 leading-tight">
+                    {foundTeacher.name}
+                  </h4>
+                  <p className="text-xs font-bold text-emerald-800">{foundTeacher.designation}</p>
+
+                  <div className="mt-1 px-3 py-0.5 bg-emerald-900 text-amber-300 rounded-full text-xs font-mono font-black border border-amber-400">
+                    Teacher ID: {foundTeacher.id}
+                  </div>
+                </div>
+
+                {/* Info Details */}
+                <div className="px-5 text-[11px] space-y-1.5 text-slate-800">
+                  <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                    <span className="text-slate-500 font-medium">মোবাইল:</span>
+                    <span className="font-mono font-bold text-slate-900">{foundTeacher.phone}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-0.5">
+                    <span className="text-slate-500 font-medium">রক্তের গ্রুপ:</span>
+                    <span className="font-bold text-rose-600">{foundTeacher.bloodGroup || 'O+'}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-100 pb-0.5">
                   <span className="text-slate-500 font-medium">যোগদানের সন:</span>
                   <span className="font-bold text-slate-900">{foundTeacher.joiningDate || '২০১৮'}</span>
                 </div>
@@ -340,7 +416,8 @@ export const StudentIdCardModal: React.FC<StudentIdCardModalProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
         </div>
       </div>

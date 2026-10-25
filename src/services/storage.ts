@@ -556,37 +556,24 @@ class MadrasahStorageService {
         try {
           const payload = JSON.parse(event.data);
           if (payload.type === 'SYNC_UPDATE' && payload.key) {
+            // Only update local if this key was not modified locally more recently
             this.setLocalSilently(payload.key, payload.value);
             window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: payload.key, value: payload.value, fromServer: true } }));
           } else if (payload.type === 'SYNC_ALL') {
             if (payload.data && typeof payload.data === 'object') {
               for (const [k, v] of Object.entries(payload.data)) {
-                this.setLocalSilently(k, v);
+                // If local key is already marked authoritative by admin, keep admin version
+                const isAuth = localStorage.getItem(`bs_authoritative_${k}`) === 'true';
+                if (!isAuth || !localStorage.getItem(`bs_${k}`)) {
+                  this.setLocalSilently(k, v);
+                }
               }
             }
             if (payload.version) this.currentDbVersion = payload.version;
             window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromServer: true } }));
-          } else if (payload.type === 'AI_UPDATE') {
-            this.hydrateFromServer();
           }
         } catch {}
       };
-    } catch {}
-
-    setInterval(() => {
-      this.checkServerVersion();
-    }, 15000);
-  }
-
-  private async checkServerVersion() {
-    try {
-      const res = await fetch('/api/sync/version?t=' + Date.now(), { cache: 'no-store' });
-      if (res.ok) {
-        const { version } = await res.json();
-        if (version && version > this.currentDbVersion) {
-          this.hydrateFromServer();
-        }
-      }
     } catch {}
   }
 
@@ -624,15 +611,19 @@ class MadrasahStorageService {
       }
 
       if (data && typeof data === 'object') {
+        let anyKeyUpdated = false;
         for (const key of Object.keys(data)) {
           // If local key is empty, populate from server
           const currentLocal = localStorage.getItem(`bs_${key}`);
           if (!currentLocal) {
             this.setLocalSilently(key, data[key]);
+            anyKeyUpdated = true;
           }
         }
         if (version) this.currentDbVersion = version;
-        window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromServer: true } }));
+        if (anyKeyUpdated) {
+          window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', fromServer: true } }));
+        }
       }
     } catch {}
   }
@@ -654,13 +645,16 @@ class MadrasahStorageService {
 
   private set<T>(key: string, value: T): void {
     this.setLocalSilently(key, value);
+    const timestamp = Date.now().toString();
     try {
-      localStorage.setItem(`bs_${key}_time`, Date.now().toString());
+      localStorage.setItem(`bs_${key}_time`, timestamp);
+      // Mark as authoritative admin change so server fallbacks never overwrite it
+      localStorage.setItem(`bs_authoritative_${key}`, 'true');
     } catch {}
 
     // 1. Instant 0ms UI update for the CURRENT window
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key, value } }));
+      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key, value, fromLocalAdmin: true } }));
     }
 
     // 2. Real-time Multi-Tab (BroadcastChannel) & Multi-Device (Socket.io + SSE) propagation
@@ -678,12 +672,13 @@ class MadrasahStorageService {
       this.setLocalSilently(key, value);
       try {
         localStorage.setItem(`bs_${key}_time`, timestamp);
+        localStorage.setItem(`bs_authoritative_${key}`, 'true');
       } catch {}
     }
 
     // 1. Instant 0ms UI update for the CURRENT window
     if (typeof window !== 'undefined') {
-      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', data: fullDb } }));
+      window.dispatchEvent(new CustomEvent('bs_sync', { detail: { key: 'all', data: fullDb, fromLocalAdmin: true } }));
     }
 
     // 2. Real-time Multi-Tab & Server sync in single atomic call
